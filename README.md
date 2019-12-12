@@ -12,3 +12,14 @@ Parses ingress Prime emails about Portals submissions/approvals/edits.
 * Paste the contents of parser.js into the window.
 * **SET YOUR DISCORD WEBHOOK URL**
 * Save the Project as "IngressParser" (without quotes)
+* Open GMail
+* Create a new label
+  * "Ingress-Notifications" (without quotes)
+  * "Ingress-Processed" (without quotes)
+* Create a filter:
+  * from:(ingress-support@nianticlabs.com OR nominations@portals.ingress.com) 
+  * Has words: -"Damage Report"
+  * apply label: Ingress-Notifications
+* (Optional) Mission Support
+  * from:(ingress-support@nianticlabs.com) 
+  * Has Words: Mission Submission
