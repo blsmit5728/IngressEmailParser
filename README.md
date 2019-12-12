@@ -7,4 +7,8 @@ Parses ingress Prime emails about Portals submissions/approvals/edits.
   * Approved
   * Edited
   * Rejected
-* Open the Script Editor: **Tools_>Script Editor**
+* Open the Script Editor: **Tools->Script Editor**
+* Delete all existing code in the window.
+* Paste the contents of parser.js into the window.
+* **SET YOUR DISCORD WEBHOOK URL**
+* Save the Project as "IngressParser" (without quotes)
