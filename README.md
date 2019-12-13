@@ -36,6 +36,9 @@ Parses ingress Prime emails about Portals submissions/approvals/edits.
 ![TRIGGER_SETTINGS](trigger_settings.png)
 * Hit save and an authorization window will appear.
 * Sign in with your Google Email
-* Hit "Advanced" then "Proceed"
+* Hit "Advanced" then "Go to IngressParser (unsafe)"
+  * **You are the only one that has any access to your data, this app is just not a fully qualified Google App.**
 ![AUTH](authorize_advanced.png) 
 * Then hit "Allow" on the next window.
+* You should now have a trigger setup.
+
