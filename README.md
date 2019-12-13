@@ -7,6 +7,7 @@ Parses ingress Prime emails about Portals submissions/approvals/edits.
   * Approved
   * Edited
   * Rejected
+![Tabs](Tabs.png)
 * Open the Script Editor: **Tools->Script Editor**
 * Delete all existing code in the window.
 * Paste the contents of parser.js into the window.
@@ -20,6 +21,7 @@ Parses ingress Prime emails about Portals submissions/approvals/edits.
   * from:(ingress-support@nianticlabs.com OR nominations@portals.ingress.com) 
   * Has words: -"Damage Report"
   * apply label: Ingress-Notifications
+![Filter1](Filter-Notifications.PNG)  
 * (Optional) Mission Support
   * from:(ingress-support@nianticlabs.com) 
   * Has Words: Mission Submission
