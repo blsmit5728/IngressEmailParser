@@ -15,7 +15,7 @@ Parses ingress Prime emails about Portals submissions/approvals/edits.
 ![WEBHOOK](webhook.png)
 * Setup the username lookup
   * replace the 'A' in the if with something in your email address
-  * and the 'A' in the return statment with your name
+  * and the 'A' in the return statment with your name\
 ![USERNAME](username_lookups.png)
 * Save the Project as "IngressParser" (without quotes)
 * Open GMail
