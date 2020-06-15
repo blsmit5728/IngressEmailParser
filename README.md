@@ -7,7 +7,7 @@ Parses ingress Prime emails about Portals submissions/approvals/edits.
   * Accepted
   * Edited
   * Rejected
-![Tabs](Tabs.png)
+![Tabs](Tabs2.PNG)
 * Open the Script Editor: **Tools->Script Editor**
 * Delete all existing code in the window.
 * Paste the contents of parser.js into the window.
