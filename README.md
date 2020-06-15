@@ -3,11 +3,11 @@ Parses ingress Prime emails about Portals submissions/approvals/edits.
 
 # Setup
 * Create a Spreadsheet in Google Docs with the following Tabs: (use EXACTLY the same name)
-  * Submitted
   * Accepted
+  * Submitted
   * Edited
-  * Rejected
-![Tabs](Tabs2.PNG)
+  * Rejected\
+  ![Tabs](Tabs2.PNG)
 * Open the Script Editor: **Tools->Script Editor**
 * Delete all existing code in the window.
 * Paste the contents of parser.js into the window.
