@@ -4,7 +4,7 @@ Parses ingress Prime emails about Portals submissions/approvals/edits.
 # Setup
 * Create a Spreadsheet in Google Docs with the following Tabs: (use EXACTLY the same name)
   * Submitted
-  * Approved
+  * Accepted
   * Edited
   * Rejected
 ![Tabs](Tabs.png)
