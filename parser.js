@@ -1,4 +1,6 @@
-
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function myFunction() {
 
   var label = GmailApp.getUserLabelByName("Ingress-Notifications");
@@ -89,6 +91,17 @@ function myFunction() {
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function get_portal_bot_response(portalName)
+{
+  return "None";
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function poke_submission_parser(date, title, desc, img, theThread, label1, label2, whoTo)
 {
   var length = img.length;
@@ -98,17 +111,18 @@ function poke_submission_parser(date, title, desc, img, theThread, label1, label
   { 
     addToSubmittedRow("SUBMITTED", date, title, whoTo);
     postMessageToDiscord("Portal Submitted - " + title, t, whoTo);
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
   }
   else
   {
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
     Logger.log("S: This entry exists!");
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function poke_approval_parser(date, title, desc, img, theThread, label1, label2, whoTo)
 {
   var length = img.length;
@@ -118,17 +132,18 @@ function poke_approval_parser(date, title, desc, img, theThread, label1, label2,
   { 
     addToAcceptedRow("APPROVED", date, title, whoTo);
     postMessageToDiscord("Portal __**Accepted!**__ - " + title, t, whoTo);
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
   }
   else
   {
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
     Logger.log("S: This entry exists!");
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function poke_rejection_parser(date, title, desc, img, theThread, label1, label2, whoTo)
 {
   var length = img.length;
@@ -138,17 +153,18 @@ function poke_rejection_parser(date, title, desc, img, theThread, label1, label2
   { 
     addToRejectedRow("REJECTED", date, title, whoTo);
     postMessageToDiscord("Portal __**Rejected!**__ - " + title, t, whoTo);
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
   }
   else
   {
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
     Logger.log("S: This entry exists!");
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function photoSubParser(name, date, theThread, label1, label2, whoTo, img)
 {
   var PortalName = name;
@@ -159,75 +175,92 @@ function photoSubParser(name, date, theThread, label1, label2, whoTo, img)
     var newImg = img.substr(0,s);
     //var t = img.replace(' ', ''); // extra "<br><br> "
     postMessageToDiscord("Portal Photo Submitted - " + PortalName, newImg, whoTo);
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
   }
   else
   {
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
     Logger.log("S: This entry exists!");
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function invalid_portal_parser(subject, name, bodyText, date, theThread, label1, label2, whoTo)
 {
   var PortalName = name;
+  var portal_photo_url = get_portal_bot_response(PortalName);
   if(subject.search("reviewed") != -1)
   {
     if( bodyText.search("remain") != -1)
     {
-      if(findInRow(date) == -1)
+      var rowIndex = findInvalidEntry("NULL", PortalName);
+      if( rowIndex != -1)
       {        
+        //addToRejectedRow("INVALID", date, PortalName, whoTo);
+        modifyInvalidRow(rowIndex, "REJECTED", date);
+        postMessageToDiscord("Invalid Portal __**Rejected**__ - " + PortalName, "None", whoTo);
+        move_thread( theThread, label1, label2 );
+      }
+      else if ( rowIndex == -1 )
+      {
         addToRejectedRow("INVALID", date, PortalName, whoTo);
         postMessageToDiscord("Invalid Portal __**Rejected**__ - " + PortalName, "None", whoTo);
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
       }
       else
       {
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
       }
     }
     else
     {
-      if(findInRow(date) == -1)
+      var rowIndex = findInvalidEntry("NULL", PortalName);
+      if( rowIndex != -1)
       {        
         addToAcceptedRow("INVALID", date, PortalName, whoTo);
         postMessageToDiscord("Invalid Portal __**Accepted**__ - " + PortalName, "None", whoTo);
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
+      }
+      else if ( rowIndex == -1 )
+      {
+        //addToAcceptedRow("INVALID", date, PortalName, whoTo);
+        modifyInvalidRow(rowIndex, "ACCEPTED", date);
+        postMessageToDiscord("Invalid Portal __**Accepted**__ - " + PortalName, "None", whoTo);
+        move_thread( theThread, label1, label2 );
       }
       else
       {
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
       }
     }
   }
   else
   {
     // submitted
-    if(findInRow(date) == -1)
+    var ind = findInvalidEntry(date, PortalName);
+    if(ind == -1)
       {        
-        addToSubmittedRow("INVALID", date, PortalName, whoTo);
-        postMessageToDiscord("Invalid Portal Submitted - " + PortalName, "None", whoTo);
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        addToInvalidRow("INVALID", date, PortalName, whoTo, "SUBMITTED");
+        postMessageToDiscord("Invalid Portal Submitted - " + PortalName, portal_photo_url, whoTo);
+        move_thread( theThread, label1, label2 );
       }
       else
       {
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
         Logger.log("A: This entry exists!");
       }
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, label2, imgUrl, whoTo, rejectReason, rejectImgUrl)
 {
   var PortalName = subjectStr.substr(23,50);
+  var imageUrl = get_portal_bot_response(PortalName);
   if ( (bodyText.search("rejected") == -1) && (bodyText.search("rejection") == -1) )
   {
     if ( bodyText.search("too close") == -1)
@@ -236,13 +269,11 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
       {        
         addToAcceptedRow("ACCEPTED", date, PortalName, whoTo);
         postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo);
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
       }
       else
       {
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
         Logger.log("A: This entry exists!");
       }
     }
@@ -252,13 +283,11 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
       {
         addToRejectedRow("NOT ACCEPTED", date,PortalName, whoTo);
         postMessageToDiscord("Portal __**Rejected!**__ Too Close or Duplicate - " + PortalName, "None", whoTo);
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
       }
       else
       {
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
         Logger.log("A: This entry exists!");
       }
     }
@@ -277,24 +306,26 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
         var imageArray = rejectImgUrl.split("<");
         var newImage = imageArray[0];
         postMessageToDiscord(rsp, newImage, whoTo);
-        theThread.removeLabel(label1);
-        theThread.addLabel(label2);
+        move_thread( theThread, label1, label2 );
       }
     }
     else
     {
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
       Logger.log("R: This entry exists!");
     }
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function portalEditSubmission(subjectLine, date, theThread, label1, label2, locationString, newDesc, whoTo)
 {
   var PortalName = subjectLine;
   var discordStr = "";
   var paren = locationString.indexOf(")"); 
+  var portal_photo_link = "";
   if ( paren > -1 )
   {
     // locationString has 2 <br> at the end...
@@ -305,31 +336,34 @@ function portalEditSubmission(subjectLine, date, theThread, label1, label2, loca
     var lon = newLocation.substr(comma+1,newLocation.length);
     var googleMapsLink = "http://maps.google.com/maps?q=" + lat + "," + lon
     var intelLink = "https://intel.ingress.com/intel?pll=" + lat + "," + lon + "&z=18"
+    portal_photo_link = get_portal_bot_response(PortalName);
     discordStr = "Portal Edit Submitted - " + PortalName + "\nNew Location: " + googleMapsLink + "\nIntel Link: " + intelLink;
   } else {
     discordStr = "Portal Edit Submitted - " + PortalName + "\nNew Desc/Title: " + newDesc;
+    portal_photo_link = get_portal_bot_response(PortalName);
   }
   
   
   if(findInRow(date) == -1)
   {
     addToEditedRow("EDITED", date, PortalName, whoTo);
-    postMessageToDiscord(discordStr, "None", whoTo);
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    postMessageToDiscord(discordStr, portal_photo_link, whoTo);
+    move_thread( theThread, label1, label2 );
   }
   else
   {
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
     Logger.log("S: This entry exists!");
   }
 }
 
-
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, whoTo, thingChanged, locationStr)
 {
   var PortalName = Name;
+  var portal_photo_link = "";
   console.log(PortalName);
   var paren = locationStr.indexOf(")"); 
   var googleMapsLink = "";
@@ -357,14 +391,13 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
       else {
         send_str = "Portal Edit Accepted - " + PortalName + "\New Desc/Title: " + thingChanged;
       }
-      postMessageToDiscord(send_str, "None", whoTo);
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      portal_photo_link = get_portal_bot_response(PortalName);
+      postMessageToDiscord(send_str, portal_photo_link, whoTo);
+      move_thread( theThread, label1, label2 );
     }
     else
     {
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
       Logger.log("S: This entry exists!");
     }
   }
@@ -380,19 +413,21 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
       else {
         send_str = "Portal Edit Rejected - " + PortalName + "\New Desc/Title: " + thingChanged;
       }
-      postMessageToDiscord(send_str, "None", whoTo);
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      portal_photo_link = get_portal_bot_response(PortalName);
+      postMessageToDiscord(send_str, portal_photo_link, whoTo);
+      move_thread( theThread, label1, label2 );
     }
     else
     {
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
       Logger.log("S: This entry exists!");
     }
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function photoParser(subjectLine, date, theThread, label1, label2, title, img, whoTo, body)
 {
   var PortalName = title;
@@ -404,23 +439,23 @@ function photoParser(subjectLine, date, theThread, label1, label2, title, img, w
     {
       addToAcceptedRow("PHOTO", date, PortalName, whoTo);
       postMessageToDiscord("Portal Photo Accepted - " + PortalName, newImage, whoTo);
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
     } else {
       addToRejectedRow("PHOTO", date, PortalName, whoTo);
       postMessageToDiscord("Portal Photo Rejected - " + PortalName, newImage, whoTo);
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
     }
   }
   else
   {
-    theThread.removeLabel(label1);
-    theThread.addLabel(label2);
+    move_thread( theThread, label1, label2 );
     Logger.log("S: This entry exists!");
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
 {
   if (subjectLine.search("Ingress Mission Approved") != -1)
@@ -430,11 +465,11 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
     {
       addToAcceptedRow("MISSION APPROVED", date, MissionName, whoTo);
       postMessageToDiscord("Mission Approved - " + MissionName, "None", whoTo);
+      move_thread( theThread, label1, label2 );
     }
     else
     {
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
       Logger.log("S: This entry exists!");
     }
   }
@@ -445,13 +480,11 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
     {
       addToSubmittedRow("MISSION SUBMITTED", date, MissionName, whoTo);
       postMessageToDiscord("Mission Submitted - " + MissionName, "None", whoTo);
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
     }
     else
     {
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
       Logger.log("S: This entry exists!");
     }
   }
@@ -462,18 +495,19 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
     {
       addToSubmittedRow("MISSION REJECTED", date, MissionName, whoTo);
       postMessageToDiscord("Mission Rejected - " + MissionName, "None", whoTo);
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
     }
     else
     {
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
       Logger.log("S: This entry exists!");
     }
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function submissionConfParser(bodyText, subjectLine, date, theThread, label1, label2, imgUrl, whoTo)
 {
   if ( bodyText.search("Good work,") != -1)
@@ -483,13 +517,15 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
     {              
       addToAcceptedRow("ACCEPTED", date, PortalName, whoTo);
       postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo);
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
+      //theThread.removeLabel(label1);
+      //theThread.addLabel(label2);
     }
     else
     {
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
+      //theThread.removeLabel(label1);
+      //theThread.addLabel(label2);
       Logger.log("A: This entry exists!");
     }
   }
@@ -500,88 +536,220 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
     {
       addToSubmittedRow("SUBMITTED", date, PortalName, whoTo);
       postMessageToDiscord("Portal Submitted - " + PortalName, imgUrl, whoTo);
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
+      //theThread.removeLabel(label1);
+      //theThread.addLabel(label2);
     }
     else
     {
-      theThread.removeLabel(label1);
-      theThread.addLabel(label2);
+      move_thread( theThread, label1, label2 );
+      //theThread.removeLabel(label1);
+      //theThread.addLabel(label2);
       Logger.log("S: This entry exists!");
     }
   }
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function addToAcceptedRow(type, date, data, whoTo)
 {
   var acceptedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Accepted");
   acceptedSS.appendRow([type, date, data, whoTo]);
 }
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function addToSubmittedRow(type, date, data, whoTo)
 {
   var submittedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Submitted");
   submittedSS.appendRow([type, date, data, whoTo]);
 }
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function addToEditedRow(type, date, data, whoTo)
 {
   var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Edited");
   EditedSS.appendRow([type, date, data, whoTo]);
 }
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function addToRejectedRow(type, date, data, whoTo)
 {
   var RejectedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Rejected");
   RejectedSS.appendRow([type, date, data, whoTo]);
 }
 
-function move_thread(t) {
-  t.removeLabel("Ingress-Notifications");
-  t.addLabel("Ingress-Processed");
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function addToInvalidRow(type, date, data, whoTo, status)
+{
+  var InvalidSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Invalid");
+  InvalidSS.appendRow([type, date, data, whoTo, status]);
 }
 
-function findInRow(data) {
-  var acceptedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Accepted");
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function modifyInvalidRow(rowIndex, newValue, date)
+{
+  var InvalidSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Invalid");
+  InvalidSS.getRange(rowIndex, 5 ).setValue(newValue); 
+  // Add the new date for the Accept/reject.
+  InvalidSS.getRange(rowIndex, 6 ).setValue(date); 
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function getExistingDate( rowIndex )
+{
   var submittedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Submitted");
-  var RejectedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Rejected");
-  var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Edited");
-  
-  var accrange = acceptedSS.getDataRange();
-  var accrows  = accrange.getValues(); 
-  
-  for (var r=0; r<accrows.length; r++) { 
-    if ( accrows[r].join("#").indexOf(data) !== -1 ) {
-      return r+1;
+  var range = submittedSS.getRange(rowIndex,1); 
+  var data = range.getValue();
+  return data;
+}
+
+/**************************************************************************************
+** @brief Move a tread label from notifications to processed
+**************************************************************************************/
+function move_thread(t, l1, l2) {
+  t.removeLabel(l1);
+  t.addLabel(l2);
+}
+
+/**************************************************************************************
+** @brief Search a sheet of rows for data
+** @param rows
+** @param date
+** @param name
+**************************************************************************************/
+function genericRowSearch(rows, date, name)
+{
+  for (var r=0; r<rows.length; r++) { 
+    if ( (date != "NULL") && (name != "NULL") ) {
+      if ( (rows[r].join("#").indexOf(date) !== -1) && (rows[r].join("#").indexOf(name) !== -1) ) {
+        return r+1;
+      }
+    } else if ( name == "NULL" ){
+      if ( rows[r].join("#").indexOf(date) !== -1) {
+        return r+1;
+      }
+    } else {
+      if ( rows[r].join("#").indexOf(name) !== -1) {
+        return r+1;
+      }
     }
   }
+  return -1;
+}
+
+/**************************************************************************************
+** @brief Find a Submitted Entry
+** @param date The date of the email
+** @param name The Name of the Portal
+**************************************************************************************/
+function findSubmittedEntry( date, name )
+{
+  var submittedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Submitted");
   var subrange = submittedSS.getDataRange();
   var subrows  = subrange.getValues(); 
-  
-  for (var r=0; r<subrows.length; r++) { 
-    if ( subrows[r].join("#").indexOf(data) !== -1 ) {
-      return r+1;
-    }
-  }
-  var rejrange = RejectedSS.getDataRange();
-  var rejrows  = rejrange.getValues(); 
-  
-  for (var r=0; r<rejrows.length; r++) { 
-    if ( rejrows[r].join("#").indexOf(data) !== -1 ) {
-      return r+1;
-    }
-  }
-  
-  var edjrange = EditedSS.getDataRange();
-  var edjrows  = edjrange.getValues(); 
-  
-  for (var r=0; r<edjrows.length; r++) { 
-    if ( edjrows[r].join("#").indexOf(data) !== -1 ) {
-      return r+1;
-    }
-  }
-  
-  return -1;
-    
+  return genericRowSearch(subrows, date, name);
 }
 
+/**************************************************************************************
+** @brief Find an entry on the Accepted sheet
+** @param date The date of the email
+** @param name The Name of the Portal
+**************************************************************************************/
+function findAcceptedEntry( date, name )
+{
+  var acceptedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Accepted");
+  var accrange = acceptedSS.getDataRange();
+  var accrows  = accrange.getValues(); 
+  return genericRowSearch(accrows, date, name);
+}
+
+/**************************************************************************************
+** @brief Find an entry on the Rejected sheet
+** @param date The date of the email
+** @param name The Name of the Portal
+**************************************************************************************/
+function findRejectedEntry( date, name )
+{
+  var RejectedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Rejected");
+  var rejrange = RejectedSS.getDataRange();
+  var rejrows  = rejrange.getValues(); 
+  return genericRowSearch(rejrows, date, name);
+}
+
+/**************************************************************************************
+** @brief Find an entry on the Edited sheet
+** @param date The date of the email
+** @param name The Name of the Portal
+**************************************************************************************/
+function findEditedEntry( date, name )
+{
+  var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Edited");
+  var edjrange = EditedSS.getDataRange();
+  var edjrows  = edjrange.getValues(); 
+  return genericRowSearch(edjrange, date, name);
+}
+
+/**************************************************************************************
+** @brief 
+** @param date The date of the email
+** @param name The Name of the Portal
+**************************************************************************************/
+function findInvalidEntry( date, name ){
+  var InvalidSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Invalid");
+  var injrange = InvalidSS.getDataRange();
+  var injrows  = injrange.getValues(); 
+  return genericRowSearch(injrows, date, name);
+}
+
+/**************************************************************************************
+** @brief Find an expected data in any row of the Spreadsheet
+** @param data The Data to Find, usually a date.
+**************************************************************************************/
+function findInRow(data) {
+  
+  var ret_val = -1;
+  
+  ret_val = findAcceptedEntry(data, "NULL");
+  if ( ret_val !== -1 ) {
+    return ret_val;
+  }
+  ret_val = findSubmittedEntry(data, "NULL");
+  if ( ret_val !== -1 ) {
+    return ret_val;
+  }
+  ret_val = findRejectedEntry(data, "NULL");
+  if ( ret_val !== -1 ) {
+    return ret_val;
+  }
+  ret_val = findEditedEntry(data, "NULL");
+  if ( ret_val !== -1 ) {
+    return ret_val;
+  }
+  ret_val = findInvalidEntry(data, "NULL");
+  if ( ret_val !== -1 ) {
+    return ret_val;
+  }
+  return ret_val;
+}
+
+/**************************************************************************************
+** @brief Return a Discord approp name
+** @param userEmail
+**************************************************************************************/
 function getUserNameFromEmail(userEmail)
 {
   if (userEmail.search("SOMEUSEREMAILNAME") != -1){
@@ -591,7 +759,12 @@ function getUserNameFromEmail(userEmail)
   return "**__Unknown__**";
 }
     
-
+/**************************************************************************************
+** @brief Post a Message to Discord
+** @param message The text to post
+** @param imgUrl If we have one, the imageURL to post
+** @param whoTo The useremail that was found in the email being processed
+**************************************************************************************/
 function postMessageToDiscord(message, imgUrl, whoTo) {
 
   message = message || "Hello World!";
@@ -606,8 +779,6 @@ function postMessageToDiscord(message, imgUrl, whoTo) {
   } else {
     payload = JSON.stringify({content: message});
   }
- 
-  
   var params = {
     headers: {
       'Content-Type': 'application/json'
@@ -623,13 +794,29 @@ function postMessageToDiscord(message, imgUrl, whoTo) {
   console.log(response.getContentText());
 }
 
-
+/**************************************************************************************
+** @brief Eh....
+**************************************************************************************/
 function getRandomResponse(){
-  responses = ["YOU SUCK! HAHA!",
-               "Try Again!",
-               "Game Over Man!", 
-               "Uhhhh, what were you thinking? You're such a dumb @$$", 
-               "Dude... Not a Portal, EAD."]
+  responses = ["YOU SUCK! HAHA!","Try Again!","Game Over Man!", "Uhhhh, what were you thinking? You're such a dumb @$$", "Dude... Not a Portal, EAD."]
   return responses[Math.floor(Math.random()*5)]
 }
 
+/**************************************************************************************
+** @brief Get the diff of two dates
+** @param oldDate
+** @param newDate
+**************************************************************************************/
+function getDifferenceInDates(oldDate, newDate){
+  var hd=new Date(oldDate).valueOf();
+  var td=new Date(newDate).valueOf();
+  var sec=1000;
+  var min=60*sec;
+  var hour=60*min;
+  var day=24*hour;
+  var diff=td-hd;
+  var days=Math.floor(diff/day);
+  var hours=Math.floor(diff%day/hour);
+  var minutes=Math.floor(diff%day%hour/min);
+  Logger.log('%s days %s hours %s minutes',days,hours,minutes);
+}
