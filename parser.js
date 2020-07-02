@@ -795,6 +795,33 @@ function postMessageToDiscord(message, imgUrl, whoTo) {
 }
 
 /**************************************************************************************
+** @brief Untested - Send a message to a telegram channel
+**************************************************************************************/
+function postMessageToTelegram(message, imgUrl, whoTo)
+{
+  message = message || "Hello World!";
+  message = message + "\nCreated by: " + getUserNameFromEmail(whoTo);
+  var botToken = "bot-token-string";
+  // get your chat ID: curl https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
+  var chatId = "chat-id";
+  var teleUrl =  "https://api.telegram.org/bot" + botToken + "/sendMessage";
+  var payload = JSON.stringify({"chat_id": "-489070774", "text": message, "disable_notification": true});
+  var params = {
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    method: "POST",
+    payload: payload,
+    muteHttpExceptions: false
+  };
+  console.log(params)
+  var response = UrlFetchApp.fetch(teleUrl, params);
+
+  console.log(response.getAllHeaders());
+  console.log(response.getContentText());
+}
+
+/**************************************************************************************
 ** @brief Eh....
 **************************************************************************************/
 function getRandomResponse(){
