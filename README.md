@@ -1,5 +1,7 @@
 # IngressEmailParser
 Parses ingress Prime emails about Portals submissions/approvals/edits.
+This does not violate any TOS with Niantic and accesses only your own gmail account. This CANNOT support emails to other types of accounts or emails FW'd from others.
+** THIS IS PROVIDED AS-IS USE AT YOUR OWN RISK **
 
 # Setup
 * Create a Spreadsheet in Google Docs with the following Tabs: (use EXACTLY the same name)
