@@ -8,7 +8,8 @@ This does not violate any TOS with Niantic and accesses only your own gmail acco
   * Accepted
   * Submitted
   * Edited
-  * Rejected\
+  * Rejected
+  * Invalid\
   ![Tabs](Tabs2.PNG)
 * Open the Script Editor: **Tools->Script Editor**
 * Delete all existing code in the window.
