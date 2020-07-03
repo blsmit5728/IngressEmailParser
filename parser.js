@@ -84,7 +84,7 @@ function myFunction() {
         }
         else if (sub.search("Ineligible") != -1)
         {
-          poke_rejection_parser(dat, msgArray[12], msgArray[14], msgHTMLSplit[172].replace(/<\/?[^>]+(>|$)/g, ""), t, label, doneLabel, whoTo);
+          poke_rejection_parser(dat, msgArray[12], msgArray[14], msgHTMLSplit[163], msgHTMLSplit[172].replace(/<\/?[^>]+(>|$)/g, ""), t, label, doneLabel, whoTo);
         }
       }
     }
@@ -144,7 +144,7 @@ function poke_approval_parser(date, title, desc, img, theThread, label1, label2,
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
-function poke_rejection_parser(date, title, desc, img, theThread, label1, label2, whoTo)
+function poke_rejection_parser(date, title, desc, reason, img, theThread, label1, label2, whoTo)
 {
   var length = img.length;
   var imgUrl = img;
@@ -152,7 +152,8 @@ function poke_rejection_parser(date, title, desc, img, theThread, label1, label2
   if(findInRow(date) == -1)
   { 
     addToRejectedRow("REJECTED", date, title, whoTo);
-    postMessageToDiscord("Portal __**Rejected!**__ - " + title, t, whoTo);
+    var rsp = "Portal __**Rejected!**__ - " + title + "\n**Reason:** " + reason;
+    postMessageToDiscord(rsp, t, whoTo);
     move_thread( theThread, label1, label2 );
   }
   else
