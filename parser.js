@@ -308,6 +308,11 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
         var newImage = imageArray[0];
         postMessageToDiscord(rsp, newImage, whoTo);
         move_thread( theThread, label1, label2 );
+      } else {
+        // Redacted Emails!
+        var rsp = "[REDACTED]\nPortal __**Rejected!**__ - " + PortalName;
+        postMessageToDiscord(rsp, "None", whoTo);
+        move_thread( theThread, label1, label2 );
       }
     }
     else
