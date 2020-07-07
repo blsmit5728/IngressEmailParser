@@ -16,7 +16,7 @@ This does not violate any TOS with Niantic and accesses only your own gmail acco
 * Delete all existing code in the window.
 * Paste the contents of parser.js into the window.
 * **SET YOUR DISCORD WEBHOOK URL**
-![WEBHOOK](webhook.png)
+![WEBHOOK](webhook2.png)
 * Setup the username lookup
   * replace the 'A' in the if with something in your email address
   * and the 'A' in the return statment with your name\
