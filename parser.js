@@ -2,7 +2,6 @@
 ** @brief 
 **************************************************************************************/
 function myFunction() {
-
   var label = GmailApp.getUserLabelByName("Ingress-Notifications");
   var doneLabel = GmailApp.getUserLabelByName("Ingress-Processed");
 
@@ -55,8 +54,14 @@ function myFunction() {
         }
         else if (sub.search("Portal edit review complete") != -1)
         {
-          var combined = msgHTMLSplit[122] + msgHTMLSplit[123];
-          portalEditReviewComp(msgHTMLSplit[108], msgHTMLSplit[111], dat, t, label, doneLabel, whoTo, combined, msgHTMLSplit[124]);
+          var len = msgHTMLSplit.length;
+          if( len == 1 ) // we have a REDACTED email.
+          {
+            portalEditReviewComp(msgArray[14], cleanBodyText, dat, t, label, doneLabel, whoTo, "None", "None");
+          } else {
+            var combined = msgHTMLSplit[122] + msgHTMLSplit[123];
+            portalEditReviewComp(msgHTMLSplit[108], msgHTMLSplit[111], dat, t, label, doneLabel, whoTo, combined, msgHTMLSplit[124]);
+          }
         }
         else if (sub.search("Portal photo review complete") != -1)
         {
@@ -359,7 +364,7 @@ function portalEditSubmission(subjectLine, date, theThread, label1, label2, loca
   else
   {
     move_thread( theThread, label1, label2 );
-    Logger.log("S: This entry exists!");
+    Logger.log("portalEditSubmission: This entry exists!" + PortalName);
   }
 }
 
@@ -370,8 +375,13 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
 {
   var PortalName = Name;
   var portal_photo_link = "";
-  console.log(PortalName);
-  var paren = locationStr.indexOf(")"); 
+  Logger.log(PortalName);
+  Logger.log(bodyText);
+  
+  var paren = -1;
+  if( locationStr != "None" ){
+    var paren = locationStr.indexOf(")"); 
+  }
   var googleMapsLink = "";
   var intelLink = "";
   if ( paren > -1 )
@@ -387,9 +397,11 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
   }
   if ( bodyText.search("and we have implemented") != -1)
   {
-    if(findInRow(date) == -1)
+    var rowIndex = findEditedEntry("NULL", PortalName);
+    if(rowIndex != -1)
     {
-      addToAcceptedRow("EDITED", date, PortalName, whoTo);
+      modifyEditedRow(rowIndex, "ACCEPTED", date)
+      //addToAcceptedRow("EDITED", date, PortalName, whoTo);
       var send_str = "";
       if ( googleMapsLink != "" ) {
         send_str = "Portal Edit Accepted - " + PortalName + "\nNew Location: " + googleMapsLink + "\nIntel Link: " + intelLink;
@@ -403,15 +415,18 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
     }
     else
     {
-      move_thread( theThread, label1, label2 );
-      Logger.log("S: This entry exists!");
+      addToEditedRow("EDITED", PortalName, date, whoTo);
+      //move_thread( theThread, label1, label2 );
+      Logger.log("portalEditReviewComp: This entry exists! " + PortalName);
     }
   }
   else if( bodyText.search("decided not to") != -1)
   {
-    if(findInRow(date) == -1)
+    var rowIndex = findEditedEntry("NULL", PortalName);
+    if(rowIndex != -1)
     {
-      addToRejectedRow("EDITED", date, PortalName, whoTo);
+      modifyEditedRow(rowIndex, "REJECTED", date)
+      //addToRejectedRow("EDITED", date, PortalName, whoTo);
       var send_str = "";
       if ( googleMapsLink != "" ) {
         send_str = "Portal Edit Rejected - " + PortalName + "\nNew Location: " + googleMapsLink;
@@ -425,8 +440,9 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
     }
     else
     {
-      move_thread( theThread, label1, label2 );
-      Logger.log("S: This entry exists!");
+      addToEditedRow("EDITED", date, PortalName, whoTo);
+      //move_thread( theThread, label1, label2 );
+      Logger.log("portalEditReviewComp: This entry exists! " + PortalName);
     }
   }
 }
@@ -467,46 +483,50 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
   if (subjectLine.search("Ingress Mission Approved") != -1)
   {
     var MissionName = subjectLine.substr(26,60);
-    if(findInRow(date) == -1)
+    var rowIndex = findMissionsEntry("NULL", MissionName);
+    if(rowIndex == -1)
     {
-      addToAcceptedRow("MISSION APPROVED", date, MissionName, whoTo);
+      modifyMissionsRow(rowIndex, "APPROVED", date);
+      //addToAcceptedRow("MISSION APPROVED", date, MissionName, whoTo);
       postMessageToDiscord("Mission Approved - " + MissionName, "None", whoTo);
       move_thread( theThread, label1, label2 );
     }
     else
     {
       move_thread( theThread, label1, label2 );
-      Logger.log("S: This entry exists!");
+      Logger.log("mission_parser: This entry exists! " + MissionName);
     }
   }
   else if(subjectLine.search("Ingress Mission Submission Received") != -1)
   {
     var MissionName = subjectLine.substr(36,60);
-    if(findInRow(date) == -1)
+    var rowIndex = findMissionsEntry("NULL", MissionName);
+    if(rowIndex == -1)
     {
-      addToSubmittedRow("MISSION SUBMITTED", date, MissionName, whoTo);
+      addToMissionsRow("MISSION SUBMITTED", date, MissionName, whoTo);
       postMessageToDiscord("Mission Submitted - " + MissionName, "None", whoTo);
       move_thread( theThread, label1, label2 );
     }
     else
     {
       move_thread( theThread, label1, label2 );
-      Logger.log("S: This entry exists!");
+      Logger.log("mission_parser: This entry exists!" + MissionName);
     }
   }
   else if (subjectLine.search("Ingress Mission Rejected") != -1)
   {
     var MissionName = subjectLine.substr(25,60);
-    if(findInRow(date) == -1)
+    var rowIndex = findMissionsEntry("NULL", MissionName);
+    if(rowIndex == -1)
     {
-      addToSubmittedRow("MISSION REJECTED", date, MissionName, whoTo);
+      modifyMissionsRow(rowIndex, "REJECTED", date);
       postMessageToDiscord("Mission Rejected - " + MissionName, "None", whoTo);
       move_thread( theThread, label1, label2 );
     }
     else
     {
       move_thread( theThread, label1, label2 );
-      Logger.log("S: This entry exists!");
+      Logger.log("mission_parser: This entry exists! " + MissionName);
     }
   }
 }
@@ -516,23 +536,20 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
 **************************************************************************************/
 function submissionConfParser(bodyText, subjectLine, date, theThread, label1, label2, imgUrl, whoTo)
 {
+  var PortalName = "";
   if ( bodyText.search("Good work,") != -1)
   {
-    var PortalName = subjectLine.substr(23,50);
+    PortalName = subjectLine.substr(23,50);
     if(findInRow(date) == -1)
     {              
       addToAcceptedRow("ACCEPTED", date, PortalName, whoTo);
       postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo);
       move_thread( theThread, label1, label2 );
-      //theThread.removeLabel(label1);
-      //theThread.addLabel(label2);
     }
     else
     {
       move_thread( theThread, label1, label2 );
-      //theThread.removeLabel(label1);
-      //theThread.addLabel(label2);
-      Logger.log("A: This entry exists!");
+      Logger.log("submissionConfParser: This entry exists!" + PortalName);
     }
   }
   else
@@ -543,15 +560,11 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
       addToSubmittedRow("SUBMITTED", date, PortalName, whoTo);
       postMessageToDiscord("Portal Submitted - " + PortalName, imgUrl, whoTo);
       move_thread( theThread, label1, label2 );
-      //theThread.removeLabel(label1);
-      //theThread.addLabel(label2);
     }
     else
     {
       move_thread( theThread, label1, label2 );
-      //theThread.removeLabel(label1);
-      //theThread.addLabel(label2);
-      Logger.log("S: This entry exists!");
+      Logger.log("submissionConfParser: This entry exists!" + PortalName);
     }
   }
 }
@@ -586,6 +599,15 @@ function addToEditedRow(type, date, data, whoTo)
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
+function addToMissionsRow(type, date, data, whoTo)
+{
+  var MissionsSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Missions");
+  MissionsSS.appendRow([type, date, data, whoTo]);
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function addToRejectedRow(type, date, data, whoTo)
 {
   var RejectedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Rejected");
@@ -615,6 +637,28 @@ function modifyInvalidRow(rowIndex, newValue, date)
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
+function modifyEditedRow(rowIndex, newValue, date)
+{
+  var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Edited");
+  EditedSS.getRange(rowIndex, 5 ).setValue(newValue); 
+  // Add the new date for the Accept/reject.
+  EditedSS.getRange(rowIndex, 6 ).setValue(date); 
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function modifyMissionsRow(rowIndex, newValue, date)
+{
+  var MissionsSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Missions");
+  MissionsSS.getRange(rowIndex, 5 ).setValue(newValue); 
+  // Add the new date for the Accept/reject.
+  MissionsSS.getRange(rowIndex, 6 ).setValue(date); 
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function getExistingDate( rowIndex )
 {
   var submittedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Submitted");
@@ -639,6 +683,7 @@ function move_thread(t, l1, l2) {
 **************************************************************************************/
 function genericRowSearch(rows, date, name)
 {
+  var t = rows.length;
   for (var r=0; r<rows.length; r++) { 
     if ( (date != "NULL") && (name != "NULL") ) {
       if ( (rows[r].join("#").indexOf(date) !== -1) && (rows[r].join("#").indexOf(name) !== -1) ) {
@@ -706,7 +751,7 @@ function findEditedEntry( date, name )
   var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Edited");
   var edjrange = EditedSS.getDataRange();
   var edjrows  = edjrange.getValues(); 
-  return genericRowSearch(edjrange, date, name);
+  return genericRowSearch(edjrows, date, name);
 }
 
 /**************************************************************************************
@@ -719,6 +764,18 @@ function findInvalidEntry( date, name ){
   var injrange = InvalidSS.getDataRange();
   var injrows  = injrange.getValues(); 
   return genericRowSearch(injrows, date, name);
+}
+
+/**************************************************************************************
+** @brief 
+** @param date The date of the email
+** @param name The Name of the Portal
+**************************************************************************************/
+function findMissionsEntry( date, name ){
+  var MissionsSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Missions");
+  var missrange = MissionsSS.getDataRange();
+  var missrows  = missrange.getValues(); 
+  return genericRowSearch(missrows, date, name);
 }
 
 /**************************************************************************************
@@ -753,31 +810,18 @@ function findInRow(data) {
 }
 
 /**************************************************************************************
-** @brief Return a Discord approp name
-** @param userEmail
-**************************************************************************************/
-function getUserNameFromEmail(userEmail)
-{
-  if (userEmail.search("SOMEUSEREMAILNAME") != -1){
-    return "**A USER I KNOW!**";
-  } 
-  //return "**__Unknown User: " + userEmail + "__**";
-  return "**__Unknown__**";
-}
-    
-/**************************************************************************************
 ** @brief Post a Message to Discord
 ** @param message The text to post
 ** @param imgUrl If we have one, the imageURL to post
 ** @param whoTo The useremail that was found in the email being processed
 **************************************************************************************/
 function postMessageToDiscord(message, imgUrl, whoTo) {
-
+  
   message = message || "Hello World!";
   
   message = message + "\n__Created by__: " + getUserNameFromEmail(whoTo);
   
-  var discordUrl = 'MY_DISCORD_WEBHOOK_URL';
+  var discordUrl = getDiscordUrl();
   var payload;
   if (imgUrl.search("None") == -1) {
     /* if we find an imgUrl instead of the word None */
@@ -793,11 +837,12 @@ function postMessageToDiscord(message, imgUrl, whoTo) {
     payload: payload,
     muteHttpExceptions: false
   };
-  console.log(params)
+  Logger.log(params)
   var response = UrlFetchApp.fetch(discordUrl, params);
 
-  console.log(response.getAllHeaders());
-  console.log(response.getContentText());
+  Logger.log(response.getAllHeaders());
+  Logger.log(response.getContentText());
+  
 }
 
 /**************************************************************************************
@@ -807,11 +852,17 @@ function postMessageToTelegram(message, imgUrl, whoTo)
 {
   message = message || "Hello World!";
   message = message + "\nCreated by: " + getUserNameFromEmail(whoTo);
-  var botToken = "bot-token-string";
+  var botToken = getTeleBotToken();
   // get your chat ID: curl https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
-  var chatId = "chat-id";
+  var chatId = getTeleChatId();
   var teleUrl =  "https://api.telegram.org/bot" + botToken + "/sendMessage";
-  var payload = JSON.stringify({"chat_id": "-489070774", "text": message, "disable_notification": true});
+  var payload;
+  if (imgUrl.search("None") == -1) {
+    /* if we find an imgUrl instead of the word None */
+    message = message + "\n" + imgUrl;
+  }
+  payload = JSON.stringify({chat_id: chatId, text: message});
+  //JSON.stringify({"chat_id": "-489070774", "text": message, "disable_notification": true});
   var params = {
     headers: {
       'Content-Type': 'application/json'
@@ -820,13 +871,12 @@ function postMessageToTelegram(message, imgUrl, whoTo)
     payload: payload,
     muteHttpExceptions: false
   };
-  console.log(params)
+  Logger.log(params)
   var response = UrlFetchApp.fetch(teleUrl, params);
 
-  console.log(response.getAllHeaders());
-  console.log(response.getContentText());
+  Logger.log(response.getAllHeaders());
+  Logger.log(response.getContentText());
 }
-
 /**************************************************************************************
 ** @brief Eh....
 **************************************************************************************/
@@ -852,4 +902,29 @@ function getDifferenceInDates(oldDate, newDate){
   var hours=Math.floor(diff%day/hour);
   var minutes=Math.floor(diff%day%hour/min);
   Logger.log('%s days %s hours %s minutes',days,hours,minutes);
+}
+
+/**************************************************************************************
+** @brief Return a Discord approp name
+** @param userEmail
+**************************************************************************************/
+function getUserNameFromEmail(userEmail)
+{
+  if (userEmail.search("something") != -1){
+    return "someone";
+  } 
+}
+
+function getDiscordUrl()
+{
+  return "discord_url";
+}
+
+function getTeleBotToken()
+{
+  return "telegram-token";
+}
+function getTeleChatId()
+{
+  return "telegram_chatID";
 }
