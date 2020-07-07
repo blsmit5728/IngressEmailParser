@@ -9,8 +9,9 @@ This does not violate any TOS with Niantic and accesses only your own gmail acco
   * Submitted
   * Edited
   * Rejected
-  * Invalid\
-  ![Tabs](Tabs2.PNG)
+  * Invalid
+  * Missions\
+  ![Tabs](Tabs3.PNG)
 * Open the Script Editor: **Tools->Script Editor**
 * Delete all existing code in the window.
 * Paste the contents of parser.js into the window.
