@@ -49,8 +49,14 @@ function myFunction() {
         else if (sub.search("Portal Edit Suggestion") != -1)
         {
           /* handle an Edit submission Conf email */ 
-          var combined = msgHTMLSplit[123] + msgHTMLSplit[124];
-          portalEditSubmission(msgHTMLSplit[108], dat, t, label, doneLabel, msgHTMLSplit[125],combined, whoTo);
+          var len = msgHTMLSplit.length;
+          if( len == 1 ) // we have a REDACTED email.
+          {
+            portalEditSubmission(msgArray[14], dat, t, label, doneLabel, "None", "None", whoTo);
+          } else {
+            var combined = msgHTMLSplit[123] + msgHTMLSplit[124];
+            portalEditSubmission(msgHTMLSplit[108], dat, t, label, doneLabel, msgHTMLSplit[125],combined, whoTo);
+          }
         }
         else if (sub.search("Portal edit review complete") != -1)
         {
@@ -121,7 +127,7 @@ function poke_submission_parser(date, title, desc, img, theThread, label1, label
   else
   {
     move_thread( theThread, label1, label2 );
-    Logger.log("S: This entry exists!");
+    Logger.log("poke_submission_parser: This entry exists! " + title);
   }
 }
 
@@ -142,7 +148,7 @@ function poke_approval_parser(date, title, desc, img, theThread, label1, label2,
   else
   {
     move_thread( theThread, label1, label2 );
-    Logger.log("S: This entry exists!");
+    Logger.log("poke_approval_parser: This entry exists! " + title);
   }
 }
 
@@ -164,7 +170,7 @@ function poke_rejection_parser(date, title, desc, reason, img, theThread, label1
   else
   {
     move_thread( theThread, label1, label2 );
-    Logger.log("S: This entry exists!");
+    Logger.log("poke_rejection_parser: This entry exists!" + title);
   }
 }
 
@@ -186,7 +192,7 @@ function photoSubParser(name, date, theThread, label1, label2, whoTo, img)
   else
   {
     move_thread( theThread, label1, label2 );
-    Logger.log("S: This entry exists!");
+    Logger.log("photoSubParser: This entry exists!" + name);
   }
 }
 
@@ -218,6 +224,7 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
       else
       {
         move_thread( theThread, label1, label2 );
+        Logger.log("invalid_portal_parser: This entry exists! " + PortalName);
       }
     }
     else
@@ -239,6 +246,7 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
       else
       {
         move_thread( theThread, label1, label2 );
+        Logger.log("invalid_portal_parser: This entry exists! " + PortalName);
       }
     }
   }
@@ -255,7 +263,7 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
       else
       {
         move_thread( theThread, label1, label2 );
-        Logger.log("A: This entry exists!");
+        Logger.log("invalid_portal_parser: This entry exists! " + PortalName);
       }
   }
 }
@@ -280,7 +288,7 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
       else
       {
         move_thread( theThread, label1, label2 );
-        Logger.log("A: This entry exists!");
+        Logger.log("portalReviewComplete: This entry exists! " + PortalName);
       }
     }
     else
@@ -294,7 +302,7 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
       else
       {
         move_thread( theThread, label1, label2 );
-        Logger.log("A: This entry exists!");
+        Logger.log("portalReviewComplete: This entry exists! " + PortalName);
       }
     }
   }
@@ -323,7 +331,7 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
     else
     {
       move_thread( theThread, label1, label2 );
-      Logger.log("R: This entry exists!");
+      Logger.log("portalReviewComplete: This entry exists! " + PortalName);
     }
   }
 }
@@ -415,9 +423,8 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
     }
     else
     {
-      addToEditedRow("EDITED", PortalName, date, whoTo);
-      //move_thread( theThread, label1, label2 );
-      Logger.log("portalEditReviewComp: This entry exists! " + PortalName);
+      addToEditedRow("EDITED", date, PortalName, whoTo);
+      Logger.log("portalEditReviewComp: This entry does not exist in Edited, added it: " + PortalName);
     }
   }
   else if( bodyText.search("decided not to") != -1)
@@ -442,7 +449,7 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
     {
       addToEditedRow("EDITED", date, PortalName, whoTo);
       //move_thread( theThread, label1, label2 );
-      Logger.log("portalEditReviewComp: This entry exists! " + PortalName);
+      Logger.log("portalEditReviewComp: This entry does not exist in Edited, added it: " + PortalName);
     }
   }
 }
@@ -837,11 +844,12 @@ function postMessageToDiscord(message, imgUrl, whoTo) {
     payload: payload,
     muteHttpExceptions: false
   };
-  Logger.log(params)
+  Logger.log("Discord: " + payload);
   var response = UrlFetchApp.fetch(discordUrl, params);
 
   Logger.log(response.getAllHeaders());
   Logger.log(response.getContentText());
+  Logger.log("Discord Done!")
   
 }
 
@@ -862,7 +870,6 @@ function postMessageToTelegram(message, imgUrl, whoTo)
     message = message + "\n" + imgUrl;
   }
   payload = JSON.stringify({chat_id: chatId, text: message});
-  //JSON.stringify({"chat_id": "-489070774", "text": message, "disable_notification": true});
   var params = {
     headers: {
       'Content-Type': 'application/json'
@@ -871,11 +878,12 @@ function postMessageToTelegram(message, imgUrl, whoTo)
     payload: payload,
     muteHttpExceptions: false
   };
-  Logger.log(params)
+  Logger.log("Telegram:" + payload);
   var response = UrlFetchApp.fetch(teleUrl, params);
 
   Logger.log(response.getAllHeaders());
   Logger.log(response.getContentText());
+  Logger.log("Telegram Done!"); 
 }
 /**************************************************************************************
 ** @brief Eh....
@@ -913,18 +921,21 @@ function getUserNameFromEmail(userEmail)
   if (userEmail.search("something") != -1){
     return "someone";
   } 
+  //return "**__Unknown User: " + userEmail + "__**";
+  return "**__Unknown__**";
 }
 
 function getDiscordUrl()
 {
-  return "discord_url";
+  return "discord-webhookurl";
 }
 
 function getTeleBotToken()
 {
-  return "telegram-token";
+  return "a-bot-token";
 }
 function getTeleChatId()
 {
-  return "telegram_chatID";
+  // get your chat ID: curl https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
+  return "achatid";
 }
