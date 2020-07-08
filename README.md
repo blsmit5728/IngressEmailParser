@@ -10,6 +10,8 @@ This does not violate any TOS with Niantic and accesses only your own gmail acco
   * Edited
   * Rejected
   * Invalid
+  * Photo
+  * Nominations
   * Missions\
   ![Tabs](Tabs3.PNG)
 * Open the Script Editor: **Tools->Script Editor**
