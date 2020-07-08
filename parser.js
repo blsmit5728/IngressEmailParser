@@ -77,7 +77,17 @@ function myFunction() {
         }
         else if (sub.search("Portal photo review complete") != -1)
         {
-          photoParser(sub, dat, t, label, doneLabel, msgHTMLSplit[108], msgHTMLSplit[120], whoTo, msgHTMLSplit[112]);
+          var len = msgHTMLSplit.length;
+          if( len == 1 ) // we have a REDACTED email.
+          {
+            // redacted
+            // function photoParser(subjectLine, date, theThread, label1, label2, title, img, whoTo, body)
+            photoParser(sub, dat, t, label, doneLabel, msgArray[6], "None", whoTo, "None");
+          }
+          else
+          {
+            photoParser(sub, dat, t, label, doneLabel, msgHTMLSplit[108], msgHTMLSplit[120], whoTo, msgHTMLSplit[112]);
+          }
         }
         else if (sub.search("Portal photo submission") != -1)
         {
@@ -562,8 +572,10 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
 function photoParser(subjectLine, date, theThread, label1, label2, title, img, whoTo, body)
 {
   var PortalName = title;
-  var imageArray = img.split("<");
-  var newImage = imageArray[0];
+  if( img != "None" ){
+    var imageArray = img.split("<");
+    var newImage = imageArray[0];
+  }
   var rowIndex = findPhotoEntry("NULL", PortalName);
   if(rowIndex != -1)
   {
@@ -580,6 +592,8 @@ function photoParser(subjectLine, date, theThread, label1, label2, title, img, w
   }
   else
   {
+    //addToPhotoRow(type, date, data, whoTo, status)
+    addToPhotoRow("PHOTO", date, title, whoTo, "SUBMITTED");
     move_thread( theThread, label1, label2 );
     Logger.log("photoParser: This entry exists: " + PortalName );
   }
