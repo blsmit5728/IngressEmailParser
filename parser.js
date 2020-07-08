@@ -63,7 +63,13 @@ function myFunction() {
           var len = msgHTMLSplit.length;
           if( len == 1 ) // we have a REDACTED email.
           {
-            portalEditReviewComp(msgArray[14], cleanBodyText, dat, t, label, doneLabel, whoTo, "None", "None");
+            var N = "";
+            if (msgArray.length < 10){
+              N = msgArray[3];
+            } else {
+              N = msgArray[10];
+            }
+            portalEditReviewComp(N, cleanBodyText, dat, t, label, doneLabel, whoTo, "None", "None");
           } else {
             var combined = msgHTMLSplit[122] + msgHTMLSplit[123];
             portalEditReviewComp(msgHTMLSplit[108], msgHTMLSplit[111], dat, t, label, doneLabel, whoTo, combined, msgHTMLSplit[124]);
@@ -96,6 +102,32 @@ function myFunction() {
         else if (sub.search("Ineligible") != -1)
         {
           poke_rejection_parser(dat, msgArray[12], msgArray[14], msgHTMLSplit[163], msgHTMLSplit[172].replace(/<\/?[^>]+(>|$)/g, ""), t, label, doneLabel, whoTo);
+        }
+        else if (sub.search("Edit Suggestion Accepted") != -1)
+        {
+          Logger.log("EDITAC");
+          // new 18
+          // name 8
+          // id 22
+          poke_edit_accepted(dat, msgArray[8], t, label, doneLabel, whoTo, msgArray[22], msgArray[18])
+        }
+        else if (sub.search("Edit Suggestion Received") != -1)
+        {
+          //function poke_edit_rx( date, title, theThread, label1, label2, whoTo, base64Id)
+          Logger.log("EDITRX");
+          poke_edit_rx(dat, msgArray[8], t, label, doneLabel, whoTo, msgArray[24], msgArray[20])
+          // ID= 24
+          // name = 8
+          // new Name = 20
+        }
+        else if (sub.search("Edit Suggestion Rejected") != -1)
+        {
+          Logger.log("EDITRJ");
+          poke_edit_rejected(dat, msgArray[8], t, label, doneLabel, whoTo, msgArray[22], msgArray[20])
+        }
+        else if( sub.search("Invalid Pok") != -1)
+        {
+          Logger.log("INV");
         }
       }
     }
@@ -177,12 +209,82 @@ function poke_rejection_parser(date, title, desc, reason, img, theThread, label1
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
+function poke_edit_rx( date, title, theThread, label1, label2, whoTo, base64Id, sugg)
+{
+  var s = title.indexOf(":");
+  var Name = title.substr(s+1,title.length);
+  var rowIndex = findEditedEntry("NULL", Name);
+  if(rowIndex == -1)
+  {
+    var discordStr = "Portal Edit Submitted - " + Name + "\nNew Desc/Title: " + sugg;
+    addToEditedRow("EDITED", date, Name, whoTo, base64Id);
+    postMessageToDiscord(discordStr, "None", whoTo);
+    move_thread( theThread, label1, label2 );
+  }
+  else
+  {
+    //addToEditedRow("EDITED", date, PortalName, whoTo);
+    //postMessageToDiscord(discordStr, portal_photo_link, whoTo);
+    move_thread( theThread, label1, label2 );
+    Logger.log("poke_edit_rx: Name already found in Edits: " + Name);
+  }
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function poke_edit_accepted( date, title, theThread, label1, label2, whoTo, base64Id, sugg)
+{
+  var s = title.indexOf(":");
+  var Name = title.substr(s+1,title.length);
+  var rowIndex = findEditedEntry("NULL", Name);
+  if(rowIndex == -1)
+  {
+    move_thread( theThread, label1, label2 );
+    Logger.log("poke_edit_accepted: Name already found in Edits: " + Name);
+  }
+  else
+  {
+    var discordStr = "Portal Edit Accepted - " + Name + "\New Desc/Title: " + sugg;
+    modifyEditedRow(rowIndex, "ACCEPTED", date)
+    postMessageToDiscord(discordStr, "None", whoTo);
+    move_thread( theThread, label1, label2 );
+    
+  }
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function poke_edit_rejected( date, title, theThread, label1, label2, whoTo, base64Id, sugg)
+{
+  var s = title.indexOf(":");
+  var Name = title.substr(s+1,title.length);
+  var rowIndex = findEditedEntry("NULL", Name);
+  if(rowIndex == -1)
+  {
+    move_thread( theThread, label1, label2 );
+    Logger.log("poke_edit_rejected: Name already found in Edits: " + Name);
+  }
+  else
+  {
+    var discordStr = "Portal Edit Rejected - " + Name + "\New Desc/Title: " + sugg;
+    modifyEditedRow(rowIndex, "REJECTED", date)
+    postMessageToDiscord(discordStr, "None", whoTo);
+    move_thread( theThread, label1, label2 );
+    
+  }
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function photoSubParser(name, date, theThread, label1, label2, whoTo, img)
 {
   var PortalName = name;
   if(findInRow(date) == -1)
   {
-    addToSubmittedRow("PHOTO", date, PortalName, whoTo);
+    addToPhotoRow("PHOTO", date, PortalName, whoTo, "SUBMITTED" );
     var s = img.indexOf("<");
     var newImg = img.substr(0,s);
     //var t = img.replace(' ', ''); // extra "<br><br> "
@@ -365,7 +467,7 @@ function portalEditSubmission(subjectLine, date, theThread, label1, label2, loca
   
   if(findInRow(date) == -1)
   {
-    addToEditedRow("EDITED", date, PortalName, whoTo);
+    addToEditedRow("EDITED", date, PortalName, whoTo, 0);
     postMessageToDiscord(discordStr, portal_photo_link, whoTo);
     move_thread( theThread, label1, label2 );
   }
@@ -423,7 +525,7 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
     }
     else
     {
-      addToEditedRow("EDITED", date, PortalName, whoTo);
+      addToEditedRow("EDITED", date, PortalName, whoTo, 0);
       Logger.log("portalEditReviewComp: This entry does not exist in Edited, added it: " + PortalName);
     }
   }
@@ -447,7 +549,7 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
     }
     else
     {
-      addToEditedRow("EDITED", date, PortalName, whoTo);
+      addToEditedRow("EDITED", date, PortalName, whoTo, 0);
       //move_thread( theThread, label1, label2 );
       Logger.log("portalEditReviewComp: This entry does not exist in Edited, added it: " + PortalName);
     }
@@ -462,15 +564,16 @@ function photoParser(subjectLine, date, theThread, label1, label2, title, img, w
   var PortalName = title;
   var imageArray = img.split("<");
   var newImage = imageArray[0];
-  if(findInRow(date) == -1)
+  var rowIndex = findPhotoEntry("NULL", PortalName);
+  if(rowIndex != -1)
   {
     if ( body.search("we’ve accepted your additional photo submission") > -1)
     {
-      addToAcceptedRow("PHOTO", date, PortalName, whoTo);
+      modifyPhotoRow(rowIndex, "ACCEPTED", date);
       postMessageToDiscord("Portal Photo Accepted - " + PortalName, newImage, whoTo);
       move_thread( theThread, label1, label2 );
     } else {
-      addToRejectedRow("PHOTO", date, PortalName, whoTo);
+      modifyPhotoRow(rowIndex, "REJECTED", date);
       postMessageToDiscord("Portal Photo Rejected - " + PortalName, newImage, whoTo);
       move_thread( theThread, label1, label2 );
     }
@@ -478,7 +581,7 @@ function photoParser(subjectLine, date, theThread, label1, label2, title, img, w
   else
   {
     move_thread( theThread, label1, label2 );
-    Logger.log("S: This entry exists!");
+    Logger.log("photoParser: This entry exists: " + PortalName );
   }
 }
 
@@ -597,10 +700,10 @@ function addToSubmittedRow(type, date, data, whoTo)
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
-function addToEditedRow(type, date, data, whoTo)
+function addToEditedRow(type, date, data, whoTo, id)
 {
   var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Edited");
-  EditedSS.appendRow([type, date, data, whoTo]);
+  EditedSS.appendRow([type, date, data, whoTo, "SUBMITTED", "", "", id]);
 }
 
 /**************************************************************************************
@@ -628,6 +731,26 @@ function addToInvalidRow(type, date, data, whoTo, status)
 {
   var InvalidSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Invalid");
   InvalidSS.appendRow([type, date, data, whoTo, status]);
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function addToPhotoRow(type, date, data, whoTo, status)
+{
+  var PhotoSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Photo");
+  PhotoSS.appendRow([type, date, data, whoTo, status]);
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function modifyPhotoRow(rowIndex, newValue, date)
+{
+  var PhotoSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Photo");
+  PhotoSS.getRange(rowIndex, 5 ).setValue(newValue); 
+  // Add the new date for the Accept/reject.
+  PhotoSS.getRange(rowIndex, 6 ).setValue(date); 
 }
 
 /**************************************************************************************
@@ -786,6 +909,19 @@ function findMissionsEntry( date, name ){
 }
 
 /**************************************************************************************
+** @brief 
+** @param date The date of the email
+** @param name The Name of the Portal
+**************************************************************************************/
+function findPhotoEntry( date, name ){
+  var PhotoSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Photo");
+  var photorange = PhotoSS.getDataRange();
+  var photorows  = photorange.getValues(); 
+  return genericRowSearch(photorows, date, name);
+}
+
+
+/**************************************************************************************
 ** @brief Find an expected data in any row of the Spreadsheet
 ** @param data The Data to Find, usually a date.
 **************************************************************************************/
@@ -918,9 +1054,9 @@ function getDifferenceInDates(oldDate, newDate){
 **************************************************************************************/
 function getUserNameFromEmail(userEmail)
 {
-  if (userEmail.search("something") != -1){
-    return "someone";
-  } 
+  //if (userEmail.search("something") != -1){
+  //  return "someone";
+  //} 
   //return "**__Unknown User: " + userEmail + "__**";
   return "**__Unknown__**";
 }
