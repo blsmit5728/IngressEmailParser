@@ -1,3 +1,13 @@
+var sendPoiSubmission = false;
+var sendPoiAccepted = false;
+var sendPoiRejected = false;
+var sendEditSubmission = false;
+var sendEditAccepted = false;
+var sendEditRejected = false;
+var sendPhotoSubmission = false;
+var sendPhotoAccepted = false;
+var sendPhotoRejected = false;
+
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
@@ -163,7 +173,9 @@ function poke_submission_parser(date, title, desc, img, theThread, label1, label
   if(findInRow(date) == -1)
   { 
     addToSubmittedRow("SUBMITTED", date, title, whoTo);
-    postMessageToDiscord("Portal Submitted - " + title, t, whoTo);
+    if(sendPoiSubmission){
+      postMessageToDiscord("Portal Submitted - " + title, t, whoTo);
+    }
     move_thread( theThread, label1, label2 );
   }
   else
@@ -184,7 +196,9 @@ function poke_approval_parser(date, title, desc, img, theThread, label1, label2,
   if(findInRow(date) == -1)
   { 
     addToAcceptedRow("APPROVED", date, title, whoTo);
-    postMessageToDiscord("Portal __**Accepted!**__ - " + title, t, whoTo);
+    if(sendPoiAccepted){
+      postMessageToDiscord("Portal __**Accepted!**__ - " + title, t, whoTo);
+    }
     move_thread( theThread, label1, label2 );
   }
   else
@@ -206,7 +220,9 @@ function poke_rejection_parser(date, title, desc, reason, img, theThread, label1
   { 
     addToRejectedRow("REJECTED", date, title, whoTo);
     var rsp = "Portal __**Rejected!**__ - " + title + "\n**Reason:** " + reason;
-    postMessageToDiscord(rsp, t, whoTo);
+    if(sendPoiRejected){
+      postMessageToDiscord(rsp, t, whoTo);
+    }
     move_thread( theThread, label1, label2 );
   }
   else
@@ -228,7 +244,9 @@ function poke_edit_rx( date, title, theThread, label1, label2, whoTo, base64Id, 
   {
     var discordStr = "Portal Edit Submitted - " + Name + "\nNew Desc/Title: " + sugg;
     addToEditedRow("EDITED", date, Name, whoTo, base64Id);
-    postMessageToDiscord(discordStr, "None", whoTo);
+    if(sendEditSubmission){
+      postMessageToDiscord(discordStr, "None", whoTo);
+    }
     move_thread( theThread, label1, label2 );
   }
   else
@@ -257,7 +275,9 @@ function poke_edit_accepted( date, title, theThread, label1, label2, whoTo, base
   {
     var discordStr = "Portal Edit Accepted - " + Name + "\New Desc/Title: " + sugg;
     modifyEditedRow(rowIndex, "ACCEPTED", date)
-    postMessageToDiscord(discordStr, "None", whoTo);
+    if(sendEditAccepted){
+      postMessageToDiscord(discordStr, "None", whoTo);
+    }
     move_thread( theThread, label1, label2 );
     
   }
@@ -280,7 +300,9 @@ function poke_edit_rejected( date, title, theThread, label1, label2, whoTo, base
   {
     var discordStr = "Portal Edit Rejected - " + Name + "\New Desc/Title: " + sugg;
     modifyEditedRow(rowIndex, "REJECTED", date)
-    postMessageToDiscord(discordStr, "None", whoTo);
+    if(sendEditRejected){
+      postMessageToDiscord(discordStr, "None", whoTo);
+    }
     move_thread( theThread, label1, label2 );
     
   }
@@ -295,10 +317,17 @@ function photoSubParser(name, date, theThread, label1, label2, whoTo, img)
   if(findInRow(date) == -1)
   {
     addToPhotoRow("PHOTO", date, PortalName, whoTo, "SUBMITTED" );
-    var s = img.indexOf("<");
-    var newImg = img.substr(0,s);
-    //var t = img.replace(' ', ''); // extra "<br><br> "
-    postMessageToDiscord("Portal Photo Submitted - " + PortalName, newImg, whoTo);
+    if(img){
+      var s = img.indexOf("<");
+      var newImg = img.substr(0,s);
+      //var t = img.replace(' ', ''); // extra "<br><br> "
+    }
+    else{
+      var newImg = "" 
+    }
+    if(sendPhotoSubmission){
+      postMessageToDiscord("Portal Photo Submitted - " + PortalName, newImg, whoTo);
+    }
     move_thread( theThread, label1, label2 );
   }
   else
@@ -394,7 +423,9 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
       if(findInRow(date) == -1)
       {        
         addToAcceptedRow("ACCEPTED", date, PortalName, whoTo);
-        postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo);
+        if(sendPoiAccepted){
+          postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo);
+        }
         move_thread( theThread, label1, label2 );
       }
       else
@@ -408,7 +439,9 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
       if(findInRow(date) == -1)
       {
         addToRejectedRow("NOT ACCEPTED", date,PortalName, whoTo);
-        postMessageToDiscord("Portal __**Rejected!**__ Too Close or Duplicate - " + PortalName, "None", whoTo);
+        if(sendPoiRejected){
+          postMessageToDiscord("Portal __**Rejected!**__ Too Close or Duplicate - " + PortalName, "None", whoTo);
+        }
         move_thread( theThread, label1, label2 );
       }
       else
@@ -431,12 +464,16 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
         var rsp = "Portal __**Rejected!**__ - " + PortalName + "\n**Reason:** " + R;
         var imageArray = rejectImgUrl.split("<");
         var newImage = imageArray[0];
-        postMessageToDiscord(rsp, newImage, whoTo);
+        if(sendPoiRejected){
+          postMessageToDiscord(rsp, newImage, whoTo);
+        }
         move_thread( theThread, label1, label2 );
       } else {
         // Redacted Emails!
         var rsp = "[REDACTED]\nPortal __**Rejected!**__ - " + PortalName;
-        postMessageToDiscord(rsp, "None", whoTo);
+        if(sendPoiRejected){
+          postMessageToDiscord(rsp, "None", whoTo);
+        }
         move_thread( theThread, label1, label2 );
       }
     }
@@ -478,7 +515,9 @@ function portalEditSubmission(subjectLine, date, theThread, label1, label2, loca
   if(findInRow(date) == -1)
   {
     addToEditedRow("EDITED", date, PortalName, whoTo, 0);
-    postMessageToDiscord(discordStr, portal_photo_link, whoTo);
+    if(sendEditSubmission){
+      postMessageToDiscord(discordStr, portal_photo_link, whoTo);
+    }
     move_thread( theThread, label1, label2 );
   }
   else
@@ -530,7 +569,9 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
         send_str = "Portal Edit Accepted - " + PortalName + "\New Desc/Title: " + thingChanged;
       }
       portal_photo_link = get_portal_bot_response(PortalName);
-      postMessageToDiscord(send_str, portal_photo_link, whoTo);
+      if(sendEditAccepted){
+        postMessageToDiscord(send_str, portal_photo_link, whoTo);
+      }
       move_thread( theThread, label1, label2 );
     }
     else
@@ -554,7 +595,9 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
         send_str = "Portal Edit Rejected - " + PortalName + "\New Desc/Title: " + thingChanged;
       }
       portal_photo_link = get_portal_bot_response(PortalName);
-      postMessageToDiscord(send_str, portal_photo_link, whoTo);
+      if(sendEditRejected){
+        postMessageToDiscord(send_str, portal_photo_link, whoTo);
+      }
       move_thread( theThread, label1, label2 );
     }
     else
@@ -582,11 +625,15 @@ function photoParser(subjectLine, date, theThread, label1, label2, title, img, w
     if ( body.search("we’ve accepted your additional photo submission") > -1)
     {
       modifyPhotoRow(rowIndex, "ACCEPTED", date);
-      postMessageToDiscord("Portal Photo Accepted - " + PortalName, newImage, whoTo);
+      if(sendPhotoAccepted){
+        postMessageToDiscord("Portal Photo Accepted - " + PortalName, newImage, whoTo);
+      }
       move_thread( theThread, label1, label2 );
     } else {
       modifyPhotoRow(rowIndex, "REJECTED", date);
-      postMessageToDiscord("Portal Photo Rejected - " + PortalName, newImage, whoTo);
+      if(sendPhotoRejected){
+        postMessageToDiscord("Portal Photo Rejected - " + PortalName, newImage, whoTo);
+      }
       move_thread( theThread, label1, label2 );
     }
   }
@@ -667,7 +714,9 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
     if(findInRow(date) == -1)
     {              
       addToAcceptedRow("ACCEPTED", date, PortalName, whoTo);
-      postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo);
+      if(sendPoiAccepted){
+        postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo);
+      }
       move_thread( theThread, label1, label2 );
     }
     else
@@ -682,7 +731,9 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
     if(findInRow(date) == -1)
     {
       addToSubmittedRow("SUBMITTED", date, PortalName, whoTo);
-      postMessageToDiscord("Portal Submitted - " + PortalName, imgUrl, whoTo);
+      if(sendPoiSubmission){
+        postMessageToDiscord("Portal Submitted - " + PortalName, imgUrl, whoTo);
+      }
       move_thread( theThread, label1, label2 );
     }
     else
@@ -980,9 +1031,13 @@ function postMessageToDiscord(message, imgUrl, whoTo) {
   
   var discordUrl = getDiscordUrl();
   var payload;
-  if (imgUrl.search("None") == -1) {
-    /* if we find an imgUrl instead of the word None */
-    payload = JSON.stringify({content: message,  embeds : [{image: {url: imgUrl}}]});
+  if(imgUrl){
+    if (imgUrl.search("None") == -1) {
+      /* if we find an imgUrl instead of the word None */
+      payload = JSON.stringify({content: message,  embeds : [{image: {url: imgUrl}}]});
+    } else {
+    payload = JSON.stringify({content: message});
+    }
   } else {
     payload = JSON.stringify({content: message});
   }
