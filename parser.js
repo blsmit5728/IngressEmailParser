@@ -7,6 +7,12 @@ var sendEditRejected = false;
 var sendPhotoSubmission = false;
 var sendPhotoAccepted = false;
 var sendPhotoRejected = false;
+var sendMissionSubmission = false;
+var sendMissionAccepted = false;
+var sendMissionRejected = false;
+var sendInvalidSubmission = false;
+var sendInvalidAccepted = false;
+var sendInvalidRejected = false;
 
 /**************************************************************************************
 ** @brief 
@@ -353,13 +359,17 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
       {        
         //addToRejectedRow("INVALID", date, PortalName, whoTo);
         modifyInvalidRow(rowIndex, "REJECTED", date);
-        postMessageToDiscord("Invalid Portal __**Rejected**__ - " + PortalName, "None", whoTo, "InvalidRejected");
+        if(sendInvalidRejected){
+          postMessageToDiscord("Invalid Portal __**Rejected**__ - " + PortalName, "None", whoTo, "InvalidRejected");
+        }
         move_thread( theThread, label1, label2 );
       }
       else if ( rowIndex == -1 )
       {
         addToRejectedRow("INVALID", date, PortalName, whoTo);
-        postMessageToDiscord("Invalid Portal __**Rejected**__ - " + PortalName, "None", whoTo, "InvalidRejected");
+        if(sendInvalidRejected){
+          postMessageToDiscord("Invalid Portal __**Rejected**__ - " + PortalName, "None", whoTo, "InvalidRejected");
+        }
         move_thread( theThread, label1, label2 );
       }
       else
@@ -374,14 +384,18 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
       if( rowIndex != -1)
       {        
         addToAcceptedRow("INVALID", date, PortalName, whoTo);
-        postMessageToDiscord("Invalid Portal __**Accepted**__ - " + PortalName, "None", whoTo, "InvalidAccepted");
+        if(sendInvalidAccepted){
+          postMessageToDiscord("Invalid Portal __**Accepted**__ - " + PortalName, "None", whoTo, "InvalidAccepted");
+        }
         move_thread( theThread, label1, label2 );
       }
       else if ( rowIndex == -1 )
       {
         //addToAcceptedRow("INVALID", date, PortalName, whoTo);
         modifyInvalidRow(rowIndex, "ACCEPTED", date);
-        postMessageToDiscord("Invalid Portal __**Accepted**__ - " + PortalName, "None", whoTo, "InvalidAccepted");
+        if(sendInvalidAccepted){
+          postMessageToDiscord("Invalid Portal __**Accepted**__ - " + PortalName, "None", whoTo, "InvalidAccepted");
+        }
         move_thread( theThread, label1, label2 );
       }
       else
@@ -398,7 +412,9 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
     if(ind == -1)
       {        
         addToInvalidRow("INVALID", date, PortalName, whoTo, "SUBMITTED");
-        postMessageToDiscord("Invalid Portal Submitted - " + PortalName, portal_photo_url, whoTo, "InvalidSubmission");
+        if(sendInvalidSubmission){
+          postMessageToDiscord("Invalid Portal Submitted - " + PortalName, portal_photo_url, whoTo, "InvalidSubmission");
+        }
         move_thread( theThread, label1, label2 );
       }
       else
@@ -659,7 +675,9 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
     {
       modifyMissionsRow(rowIndex, "APPROVED", date);
       //addToAcceptedRow("MISSION APPROVED", date, MissionName, whoTo);
-      postMessageToDiscord("Mission Approved - " + MissionName, "None", whoTo, "MissionAccepted");
+      if(sendMissionAccepted){
+        postMessageToDiscord("Mission Approved - " + MissionName, "None", whoTo, "MissionAccepted");
+      }
       move_thread( theThread, label1, label2 );
     }
     else
@@ -675,7 +693,9 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
     if(rowIndex == -1)
     {
       addToMissionsRow("MISSION SUBMITTED", date, MissionName, whoTo);
-      postMessageToDiscord("Mission Submitted - " + MissionName, "None", whoTo, "MissionSubmitted");
+      if(sendMissionSubmission){
+        postMessageToDiscord("Mission Submitted - " + MissionName, "None", whoTo, "MissionSubmitted");
+      }
       move_thread( theThread, label1, label2 );
     }
     else
@@ -691,7 +711,9 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
     if(rowIndex == -1)
     {
       modifyMissionsRow(rowIndex, "REJECTED", date);
-      postMessageToDiscord("Mission Rejected - " + MissionName, "None", whoTo, "MissionRejected");
+      if(sendMissionRejected){
+        postMessageToDiscord("Mission Rejected - " + MissionName, "None", whoTo, "MissionRejected");
+      }
       move_thread( theThread, label1, label2 );
     }
     else
@@ -1168,6 +1190,15 @@ function getDiscordWebhookUrl(type)
     case "PhotoRejected":
       // return ["discord-webhookurl"];
       break;
+    case "MissionSubmission":
+      // return ["discord-webhookurl"];
+      break;
+    case "MissionAccepted":
+      // return ["discord-webhookurl"];
+      break;
+    case "MissionRejected":
+      // return ["discord-webhookurl"];
+      break;      
     default:
       return ["discord-webhookurl"];
   }
