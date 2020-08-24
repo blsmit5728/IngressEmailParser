@@ -60,7 +60,8 @@ function myFunction() {
         else if (sub.search("Portal edit submission confirmation") != -1)
         {
           /* handle an Edit submission Conf email */ 
-          portalEditSubmission(sub, dat, t, label, doneLabel, whoTo);
+          var name = sub.replace("Portal edit submission confirmation: ", "");
+          portalEditSubmission(name, dat, t, label, doneLabel, "None", "None", whoTo, "REDACTED");
         }
         else if (sub.search("Portal Edit Suggestion") != -1)
         {
@@ -68,10 +69,10 @@ function myFunction() {
           var len = msgHTMLSplit.length;
           if( len == 1 ) // we have a REDACTED email.
           {
-            portalEditSubmission(msgArray[14], dat, t, label, doneLabel, "None", "None", whoTo);
+            portalEditSubmission(msgArray[14], dat, t, label, doneLabel, "None", "None", whoTo, "REDACTED");
           } else {
             var combined = msgHTMLSplit[123] + msgHTMLSplit[124];
-            portalEditSubmission(msgHTMLSplit[108], dat, t, label, doneLabel, msgHTMLSplit[125],combined, whoTo);
+            portalEditSubmission(msgHTMLSplit[108], dat, t, label, doneLabel, msgHTMLSplit[125],combined, whoTo, msgHTMLSplit[126]);
           }
         }
         else if (sub.search("Portal edit review complete") != -1)
@@ -85,10 +86,10 @@ function myFunction() {
             } else {
               N = msgArray[10];
             }
-            portalEditReviewComp(N, cleanBodyText, dat, t, label, doneLabel, whoTo, "None", "None");
+            portalEditReviewComp(N, cleanBodyText, dat, t, label, doneLabel, whoTo, "None", "None", "REDACTED");
           } else {
             var combined = msgHTMLSplit[122] + msgHTMLSplit[123];
-            portalEditReviewComp(msgHTMLSplit[108], msgHTMLSplit[111], dat, t, label, doneLabel, whoTo, combined, msgHTMLSplit[124]);
+            portalEditReviewComp(msgHTMLSplit[108], msgHTMLSplit[111], dat, t, label, doneLabel, whoTo, combined, msgHTMLSplit[124], msgHTMLSplit[125]);
           }
         }
         else if (sub.search("Portal photo review complete") != -1)
@@ -178,7 +179,7 @@ function poke_submission_parser(date, title, desc, img, theThread, label1, label
   var t = imgUrl.replace(' ', '');
   if(findInRow(date) == -1)
   { 
-    addToSubmittedRow("SUBMITTED", date, title, whoTo);
+    addToSubmittedRow("SUBMITTED", date, decodeHTMLEntities(title), whoTo);
     if(sendPoiSubmission){
       postMessageToDiscord("Portal Submitted - " + title, t, whoTo, "PoiSubmission");
     }
@@ -201,7 +202,12 @@ function poke_approval_parser(date, title, desc, img, theThread, label1, label2,
   var t = imgUrl.replace(' ', '');
   if(findInRow(date) == -1)
   { 
-    addToAcceptedRow("APPROVED", date, title, whoTo);
+    var rowIndex = findSubmittedEntry("NULL", title);
+    if(rowIndex != -1)
+    {
+      modifySubmittedRow(rowIndex, "ACCEPTED", date)
+    }    
+    addToAcceptedRow("ACCEPTED", date, decodeHTMLEntities(title), whoTo);
     if(sendPoiAccepted){
       postMessageToDiscord("Portal __**Accepted!**__ - " + title, t, whoTo, "PoiAccepted");
     }
@@ -224,7 +230,12 @@ function poke_rejection_parser(date, title, desc, reason, img, theThread, label1
   var t = imgUrl.replace(' ', '');
   if(findInRow(date) == -1)
   { 
-    addToRejectedRow("REJECTED", date, title, whoTo);
+    var rowIndex = findSubmittedEntry("NULL", title);
+    if(rowIndex != -1)
+    {
+      modifySubmittedRow(rowIndex, "REJECTED", date)
+    }    
+    addToRejectedRow("REJECTED", date, decodeHTMLEntities(title), whoTo);
     var rsp = "Portal __**Rejected!**__ - " + title + "\n**Reason:** " + reason;
     if(sendPoiRejected){
       postMessageToDiscord(rsp, t, whoTo, "PoiRejected");
@@ -249,7 +260,7 @@ function poke_edit_rx( date, title, theThread, label1, label2, whoTo, base64Id, 
   if(rowIndex == -1)
   {
     var discordStr = "Portal Edit Submitted - " + Name + "\nNew Desc/Title: " + sugg;
-    addToEditedRow("EDITED", date, Name, whoTo, base64Id);
+    addToEditedRow("EDITED", date, decodeHTMLEntities(Name), whoTo, base64Id);
     if(sendEditSubmission){
       postMessageToDiscord(discordStr, "None", whoTo, "EditSubmission");
     }
@@ -322,7 +333,7 @@ function photoSubParser(name, date, theThread, label1, label2, whoTo, img)
   var PortalName = name;
   if(findInRow(date) == -1)
   {
-    addToPhotoRow("PHOTO", date, PortalName, whoTo, "SUBMITTED" );
+    addToPhotoRow("PHOTO", date, decodeHTMLEntities(PortalName), whoTo, "SUBMITTED" );
     if(img){
       var s = img.indexOf("<");
       var newImg = img.substr(0,s);
@@ -366,7 +377,7 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
       }
       else if ( rowIndex == -1 )
       {
-        addToRejectedRow("INVALID", date, PortalName, whoTo);
+        addToRejectedRow("INVALID", date, decodeHTMLEntities(PortalName), whoTo);
         if(sendInvalidRejected){
           postMessageToDiscord("Invalid Portal __**Rejected**__ - " + PortalName, "None", whoTo, "InvalidRejected");
         }
@@ -383,7 +394,7 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
       var rowIndex = findInvalidEntry("NULL", PortalName);
       if( rowIndex != -1)
       {        
-        addToAcceptedRow("INVALID", date, PortalName, whoTo);
+        addToAcceptedRow("INVALID", date, decodeHTMLEntities(PortalName), whoTo);
         if(sendInvalidAccepted){
           postMessageToDiscord("Invalid Portal __**Accepted**__ - " + PortalName, "None", whoTo, "InvalidAccepted");
         }
@@ -411,7 +422,7 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
     var ind = findInvalidEntry(date, PortalName);
     if(ind == -1)
       {        
-        addToInvalidRow("INVALID", date, PortalName, whoTo, "SUBMITTED");
+        addToInvalidRow("INVALID", date, decodeHTMLEntities(PortalName), whoTo, "SUBMITTED");
         if(sendInvalidSubmission){
           postMessageToDiscord("Invalid Portal Submitted - " + PortalName, portal_photo_url, whoTo, "InvalidSubmission");
         }
@@ -438,7 +449,12 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
     {
       if(findInRow(date) == -1)
       {        
-        addToAcceptedRow("ACCEPTED", date, PortalName, whoTo);
+        var rowIndex = findSubmittedEntry("NULL", PortalName);
+        if(rowIndex != -1)
+        {
+          modifySubmittedRow(rowIndex, "ACCEPTED", date)
+        }        
+        addToAcceptedRow("ACCEPTED", date, decodeHTMLEntities(PortalName), whoTo);
         if(sendPoiAccepted){
           postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo, "PoiAccepted");
         }
@@ -454,7 +470,12 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
     {
       if(findInRow(date) == -1)
       {
-        addToRejectedRow("NOT ACCEPTED", date,PortalName, whoTo);
+        var rowIndex = findSubmittedEntry("NULL", PortalName);
+        if(rowIndex != -1)
+        {
+          modifySubmittedRow(rowIndex, "NOT ACCEPTED", date)
+        }
+        addToRejectedRow("NOT ACCEPTED", date, decodeHTMLEntities(PortalName), whoTo);
         if(sendPoiRejected){
           postMessageToDiscord("Portal __**Rejected!**__ Too Close or Duplicate - " + PortalName, "None", whoTo, "PoiRejected");
         }
@@ -473,7 +494,12 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
     {
       if( bodyText.search("rejected due to the") != -1)
       {
-        addToRejectedRow("REJECTED", date,PortalName, whoTo);
+        var rowIndex = findSubmittedEntry("NULL", PortalName);
+        if(rowIndex != -1)
+        {
+          modifySubmittedRow(rowIndex, "REJECTED", date)
+        }
+        addToRejectedRow("REJECTED", date, decodeHTMLEntities(PortalName), whoTo);
         var RR = rejectReason.replace("                                                  "," ");
         var RArray = RR.split("<");
         var R = RArray[0];
@@ -487,6 +513,12 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
       } else {
         // Redacted Emails!
         var rsp = "[REDACTED]\nPortal __**Rejected!**__ - " + PortalName;
+        var rowIndex = findSubmittedEntry("NULL", PortalName);
+        if(rowIndex != -1)
+        {
+          modifySubmittedRow(rowIndex, "REJECTED", date)
+        }
+        addToRejectedRow("REJECTED", date, decodeHTMLEntities(PortalName), whoTo);        
         if(sendPoiRejected){
           postMessageToDiscord(rsp, "None", whoTo, "PoiRejected");
         }
@@ -504,12 +536,20 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
-function portalEditSubmission(subjectLine, date, theThread, label1, label2, locationString, newDesc, whoTo)
+function portalEditSubmission(subjectLine, date, theThread, label1, label2, locationString, newDesc, whoTo, editID)
 {
   var PortalName = subjectLine;
   var discordStr = "";
   var paren = locationString.indexOf(")"); 
   var portal_photo_link = "";
+  var type = "";
+  if(editID.length > 10){
+    var id = editID.split(" ")[1];
+  }
+  else{
+    var id = editID;
+  }
+  Logger.log(id);
   if ( paren > -1 )
   {
     // locationString has 2 <br> at the end...
@@ -522,15 +562,17 @@ function portalEditSubmission(subjectLine, date, theThread, label1, label2, loca
     var intelLink = "https://intel.ingress.com/intel?pll=" + lat + "," + lon + "&z=18"
     portal_photo_link = get_portal_bot_response(PortalName);
     discordStr = "Portal Edit Submitted - " + PortalName + "\nNew Location: " + googleMapsLink + "\nIntel Link: " + intelLink;
+    type = "Location"
   } else {
     discordStr = "Portal Edit Submitted - " + PortalName + "\nNew Desc/Title: " + newDesc;
     portal_photo_link = get_portal_bot_response(PortalName);
+    type = "Title/Description"
   }
   
   
   if(findInRow(date) == -1)
   {
-    addToEditedRow("EDITED", date, PortalName, whoTo, 0);
+    addToEditedRow("EDITED", date, decodeHTMLEntities(PortalName), whoTo, id, type);
     if(sendEditSubmission){
       postMessageToDiscord(discordStr, portal_photo_link, whoTo, "EditSubmission");
     }
@@ -546,13 +588,18 @@ function portalEditSubmission(subjectLine, date, theThread, label1, label2, loca
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
-function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, whoTo, thingChanged, locationStr)
+function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, whoTo, thingChanged, locationStr, editID)
 {
-  var PortalName = Name;
+  var PortalName = decodeHTMLEntities(Name);
   var portal_photo_link = "";
   Logger.log(PortalName);
   Logger.log(bodyText);
-  
+  if(editID != "REDACTED"){
+    var id = editID.split(" ")[1];
+  }
+  else{
+    var id = editID;
+  }  
   var paren = -1;
   if( locationStr != "None" ){
     var paren = locationStr.indexOf(")"); 
@@ -572,7 +619,19 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
   }
   if ( bodyText.search("and we have implemented") != -1)
   {
-    var rowIndex = findEditedEntry("NULL", PortalName);
+    var rowIndex;
+    if(id != "REDACTED"){
+      var idIndex = findEditedEntry("NULL", id);
+      if(idIndex != -1){
+        rowIndex = idIndex
+      }
+      else{
+        rowIndex = findEditedEntry("NULL", PortalName);
+      }
+    }
+    else{
+      rowIndex = findEditedEntry("NULL", PortalName);
+    }
     if(rowIndex != -1)
     {
       modifyEditedRow(rowIndex, "ACCEPTED", date)
@@ -592,13 +651,25 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
     }
     else
     {
-      addToEditedRow("EDITED", date, PortalName, whoTo, 0);
+      addToEditedRow("EDITED", date, decodeHTMLEntities(PortalName), whoTo, id);
       Logger.log("portalEditReviewComp: This entry does not exist in Edited, added it: " + PortalName);
     }
   }
   else if( bodyText.search("decided not to") != -1)
   {
-    var rowIndex = findEditedEntry("NULL", PortalName);
+    var rowIndex;
+    if(id != "REDACTED"){
+      var idIndex = findEditedEntry("NULL", id);
+      if(idIndex != -1){
+        rowIndex = idIndex
+      }
+      else{
+        rowIndex = findEditedEntry("NULL", PortalName);
+      }
+    }
+    else{
+      rowIndex = findEditedEntry("NULL", PortalName);
+    }
     if(rowIndex != -1)
     {
       modifyEditedRow(rowIndex, "REJECTED", date)
@@ -618,7 +689,7 @@ function portalEditReviewComp(Name,bodyText, date, theThread, label1, label2, wh
     }
     else
     {
-      addToEditedRow("EDITED", date, PortalName, whoTo, 0);
+      addToEditedRow("EDITED", date, decodeHTMLEntities(PortalName), whoTo, id);
       //move_thread( theThread, label1, label2 );
       Logger.log("portalEditReviewComp: This entry does not exist in Edited, added it: " + PortalName);
     }
@@ -656,7 +727,7 @@ function photoParser(subjectLine, date, theThread, label1, label2, title, img, w
   else
   {
     //addToPhotoRow(type, date, data, whoTo, status)
-    addToPhotoRow("PHOTO", date, title, whoTo, "SUBMITTED");
+    addToPhotoRow("PHOTO", date, decodeHTMLEntities(title), whoTo, "SUBMITTED");
     move_thread( theThread, label1, label2 );
     Logger.log("photoParser: This entry exists: " + PortalName );
   }
@@ -692,7 +763,7 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
     var rowIndex = findMissionsEntry("NULL", MissionName);
     if(rowIndex == -1)
     {
-      addToMissionsRow("MISSION SUBMITTED", date, MissionName, whoTo);
+      addToMissionsRow("MISSION SUBMITTED", date, decodeHTMLEntities(MissionName), whoTo);
       if(sendMissionSubmission){
         postMessageToDiscord("Mission Submitted - " + MissionName, "None", whoTo, "MissionSubmitted");
       }
@@ -732,10 +803,15 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
   var PortalName = "";
   if ( bodyText.search("Good work,") != -1)
   {
-    PortalName = subjectLine.substr(23,50);
+    PortalName = subjectLine.substr(31,50);
     if(findInRow(date) == -1)
-    {              
-      addToAcceptedRow("ACCEPTED", date, PortalName, whoTo);
+    {    
+      var rowIndex = findSubmittedEntry("NULL", PortalName);
+      if(rowIndex != -1)
+      {
+        modifySubmittedRow(rowIndex, "ACCEPTED", date)
+      }                
+      addToAcceptedRow("ACCEPTED", date, decodeHTMLEntities(PortalName), whoTo);
       if(sendPoiAccepted){
         postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo, "PoiAccepted");
       }
@@ -752,7 +828,7 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
     PortalName = subjectLine.substr(31,50);
     if(findInRow(date) == -1)
     {
-      addToSubmittedRow("SUBMITTED", date, PortalName, whoTo);
+      addToSubmittedRow("SUBMITTED", date, decodeHTMLEntities(PortalName), whoTo);
       if(sendPoiSubmission){
         postMessageToDiscord("Portal Submitted - " + PortalName, imgUrl, whoTo, "PoiSubmission");
       }
@@ -765,6 +841,29 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
     }
   }
 }
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+var entities = {
+  'amp': '&',
+  'apos': '\'',
+  '#x27': '\'',
+  '#x2F': '/',
+  '#39': '\'',
+  '#47': '/',
+  'lt': '<',
+  'gt': '>',
+  'nbsp': ' ',
+  'quot': '"'
+}
+
+function decodeHTMLEntities (text) {
+  return text.trim().replace(/&([^;]+);/gm, function (match, entity) {
+    return entities[entity] || match
+  })
+}
+
 
 /**************************************************************************************
 ** @brief 
@@ -787,10 +886,10 @@ function addToSubmittedRow(type, date, data, whoTo)
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
-function addToEditedRow(type, date, data, whoTo, id)
+function addToEditedRow(type, date, data, whoTo, id, editType)
 {
   var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Edited");
-  EditedSS.appendRow([type, date, data, whoTo, "SUBMITTED", "", "", id]);
+  EditedSS.appendRow([type, date, data, whoTo, "SUBMITTED", "", editType, id]);
 }
 
 /**************************************************************************************
@@ -857,6 +956,17 @@ function modifyInvalidRow(rowIndex, newValue, date)
 function modifyEditedRow(rowIndex, newValue, date)
 {
   var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Edited");
+  EditedSS.getRange(rowIndex, 5 ).setValue(newValue); 
+  // Add the new date for the Accept/reject.
+  EditedSS.getRange(rowIndex, 6 ).setValue(date); 
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function modifySubmittedRow(rowIndex, newValue, date)
+{
+  var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Submitted");
   EditedSS.getRange(rowIndex, 5 ).setValue(newValue); 
   // Add the new date for the Accept/reject.
   EditedSS.getRange(rowIndex, 6 ).setValue(date); 
@@ -969,6 +1079,19 @@ function findEditedEntry( date, name )
   var edjrange = EditedSS.getDataRange();
   var edjrows  = edjrange.getValues(); 
   return genericRowSearch(edjrows, date, name);
+}
+
+/**************************************************************************************
+** @brief Find an entry on the Edited sheet
+** @param date The date of the email
+** @param name The Name of the Portal
+**************************************************************************************/
+function findSubmittedEntry( date, name )
+{
+  var EditedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Submitted");
+  var edjrange = EditedSS.getDataRange();
+  var edjrows  = edjrange.getValues(); 
+  return genericRowSearch(edjrows, date, decodeHTMLEntities(name));
 }
 
 /**************************************************************************************
