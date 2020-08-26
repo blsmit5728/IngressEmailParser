@@ -50,12 +50,31 @@ function myFunction() {
         if ( sub.search("Portal review complete") != -1)
         {
           /* handle a Review complete email */
-          portalReviewComplete(cleanBodyText, sub, dat, t, label, doneLabel, imgUrl, whoTo, msgHTMLSplit[113], msgHTMLSplit[122]);
+          var len = msgHTMLSplit.length;
+          if( len == 1 ) // we have a REDACTED email.
+          {
+            Logger.log("REDACTED");
+            var regex = /<img.*?src="(.*?)"/;          
+            portalReviewComplete(cleanBodyText, sub, dat, t, label, doneLabel, regex.exec(msgHTML)[1], whoTo, msgHTMLSplit[113], msgHTMLSplit[122]);
+          } else {
+            Logger.log("Prime");
+            portalReviewComplete(cleanBodyText, sub, dat, t, label, doneLabel, imgUrl, whoTo, msgHTMLSplit[113], msgHTMLSplit[122]);
+          }
         }
         else if (sub.search("Portal submission confirmation") != -1)
         {
           /* handle a Submission Email */
-          submissionConfParser(cleanBodyText, sub, dat, t, label, doneLabel, msgHTMLSplit[127], whoTo);
+          var len = msgHTMLSplit.length;
+          if ( cleanBodyText.search("Good work,") != -1){
+            portalReviewComplete(cleanBodyText, sub, dat, t, label, doneLabel, imgUrl, whoTo, msgHTMLSplit[113], msgHTMLSplit[122]);
+          }
+          else if( len == 1 ) // we have a REDACTED email.
+          {
+            var regex = /<img.*?src="(.*?)"/;
+            submissionConfParser(cleanBodyText, sub, dat, t, label, doneLabel, regex.exec(msgHTML)[1], whoTo);
+          } else {
+            submissionConfParser(cleanBodyText, sub, dat, t, label, doneLabel, msgHTMLSplit[127], whoTo);
+          }
         }
         else if (sub.search("Portal edit submission confirmation") != -1)
         {
@@ -179,7 +198,7 @@ function poke_submission_parser(date, title, desc, img, theThread, label1, label
   var t = imgUrl.replace(' ', '');
   if(findInRow(date) == -1)
   { 
-    addToSubmittedRow("SUBMITTED", date, decodeHTMLEntities(title), whoTo);
+    addToSubmittedRow("SUBMITTED", date, decodeHTMLEntities(title), whoTo, t.trim());
     if(sendPoiSubmission){
       postMessageToDiscord("Portal Submitted - " + title, t, whoTo, "PoiSubmission");
     }
@@ -202,7 +221,7 @@ function poke_approval_parser(date, title, desc, img, theThread, label1, label2,
   var t = imgUrl.replace(' ', '');
   if(findInRow(date) == -1)
   { 
-    var rowIndex = findSubmittedEntry("NULL", title);
+    var rowIndex = findSubmittedEntry("NULL", t);
     if(rowIndex != -1)
     {
       modifySubmittedRow(rowIndex, "ACCEPTED", date)
@@ -230,7 +249,7 @@ function poke_rejection_parser(date, title, desc, reason, img, theThread, label1
   var t = imgUrl.replace(' ', '');
   if(findInRow(date) == -1)
   { 
-    var rowIndex = findSubmittedEntry("NULL", title);
+    var rowIndex = findSubmittedEntry("NULL", t);
     if(rowIndex != -1)
     {
       modifySubmittedRow(rowIndex, "REJECTED", date)
@@ -441,15 +460,15 @@ function invalid_portal_parser(subject, name, bodyText, date, theThread, label1,
 **************************************************************************************/
 function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, label2, imgUrl, whoTo, rejectReason, rejectImgUrl)
 {
-  var PortalName = subjectStr.substr(23,50);
+  var PortalName = subjectStr.replace("Portal submission confirmation:","").replace("Portal review complete:","").trim()
   var imageUrl = get_portal_bot_response(PortalName);
   if ( (bodyText.search("rejected") == -1) && (bodyText.search("rejection") == -1) )
   {
-    if ( bodyText.search("too close") == -1)
+    if ( bodyText.search("too close") == -1 && bodyText.search("duplicate") == -1)
     {
       if(findInRow(date) == -1)
       {        
-        var rowIndex = findSubmittedEntry("NULL", PortalName);
+        var rowIndex = findSubmittedEntry("NULL", imgUrl);
         if(rowIndex != -1)
         {
           modifySubmittedRow(rowIndex, "ACCEPTED", date)
@@ -470,14 +489,18 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
     {
       if(findInRow(date) == -1)
       {
-        var rowIndex = findSubmittedEntry("NULL", PortalName);
+        var reason = "TOO CLOSE";
+        if(bodyText.search("duplicate") != -1){
+          reason = "DUPLICATE";
+        }
+        var rowIndex = findSubmittedEntry("NULL", rejectImgUrl.split("<")[0]);
         if(rowIndex != -1)
         {
-          modifySubmittedRow(rowIndex, "NOT ACCEPTED", date)
+          modifySubmittedRow(rowIndex, reason, date)
         }
-        addToRejectedRow("NOT ACCEPTED", date, decodeHTMLEntities(PortalName), whoTo);
+        addToRejectedRow(reason, date, decodeHTMLEntities(PortalName), whoTo);
         if(sendPoiRejected){
-          postMessageToDiscord("Portal __**Rejected!**__ Too Close or Duplicate - " + PortalName, "None", whoTo, "PoiRejected");
+          postMessageToDiscord("Portal __**Rejected!**__ " + reason + " - " + PortalName, "None", whoTo, "PoiRejected");
         }
         move_thread( theThread, label1, label2 );
       }
@@ -490,11 +513,12 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
   }
   else
   {
+    Logger.log("Rejected");
     if(findInRow(date) == -1)
     {
       if( bodyText.search("rejected due to the") != -1)
       {
-        var rowIndex = findSubmittedEntry("NULL", PortalName);
+        var rowIndex = findSubmittedEntry("NULL", rejectImgUrl.split("<")[0]);
         if(rowIndex != -1)
         {
           modifySubmittedRow(rowIndex, "REJECTED", date)
@@ -513,7 +537,7 @@ function portalReviewComplete(bodyText, subjectStr, date, theThread, label1, lab
       } else {
         // Redacted Emails!
         var rsp = "[REDACTED]\nPortal __**Rejected!**__ - " + PortalName;
-        var rowIndex = findSubmittedEntry("NULL", PortalName);
+        var rowIndex = findSubmittedEntry("NULL", imgUrl);
         if(rowIndex != -1)
         {
           modifySubmittedRow(rowIndex, "REJECTED", date)
@@ -806,7 +830,8 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
     PortalName = subjectLine.substr(31,50);
     if(findInRow(date) == -1)
     {    
-      var rowIndex = findSubmittedEntry("NULL", PortalName);
+      Logger.log(imgUrl)
+      var rowIndex = findSubmittedEntry("NULL", imgUrl);
       if(rowIndex != -1)
       {
         modifySubmittedRow(rowIndex, "ACCEPTED", date)
@@ -828,7 +853,7 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
     PortalName = subjectLine.substr(31,50);
     if(findInRow(date) == -1)
     {
-      addToSubmittedRow("SUBMITTED", date, decodeHTMLEntities(PortalName), whoTo);
+      addToSubmittedRow("SUBMITTED", date, decodeHTMLEntities(PortalName), whoTo, imgUrl);
       if(sendPoiSubmission){
         postMessageToDiscord("Portal Submitted - " + PortalName, imgUrl, whoTo, "PoiSubmission");
       }
@@ -877,10 +902,10 @@ function addToAcceptedRow(type, date, data, whoTo)
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
-function addToSubmittedRow(type, date, data, whoTo)
+function addToSubmittedRow(type, date, data, whoTo, imgUrl)
 {
   var submittedSS = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Submitted");
-  submittedSS.appendRow([type, date, data, whoTo]);
+  submittedSS.appendRow([type, date, data, whoTo, "", "", imgUrl]);
 }
 
 /**************************************************************************************
@@ -1197,7 +1222,7 @@ function postMessageToDiscord(message, imgUrl, whoTo, type) {
   Logger.log("Discord: " + payload);
   var discordUrl = getDiscordWebhookUrl(type);
   for(let i = 0; i < discordUrl.length; i++){ 
-    var response = UrlFetchApp.fetch(discordUrl, params);
+    var response = UrlFetchApp.fetch(discordUrl[i], params);
   }
 
   Logger.log(response.getAllHeaders());
