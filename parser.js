@@ -825,6 +825,7 @@ function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
 function submissionConfParser(bodyText, subjectLine, date, theThread, label1, label2, imgUrl, whoTo)
 {
   var PortalName = "";
+  var newUrl = imgUrl.substr(9,(imgUrl.length-35));
   if ( bodyText.search("Good work,") != -1)
   {
     PortalName = subjectLine.substr(31,50);
@@ -838,7 +839,7 @@ function submissionConfParser(bodyText, subjectLine, date, theThread, label1, la
       }                
       addToAcceptedRow("ACCEPTED", date, decodeHTMLEntities(PortalName), whoTo);
       if(sendPoiAccepted){
-        postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, imgUrl, whoTo, "PoiAccepted");
+        postMessageToDiscord("Portal __**Accepted!**__ - " + PortalName, newUrl, whoTo, "PoiAccepted");
       }
       move_thread( theThread, label1, label2 );
     }
