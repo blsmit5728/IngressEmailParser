@@ -1,3 +1,8 @@
+function myFunction()
+{
+  process_wayfarer_emails();
+}
+
 function process_wayfarer_emails() {
   var label = GmailApp.getUserLabelByName("Ingress-Notifications");
   var doneLabel = GmailApp.getUserLabelByName("Ingress-Processed");
@@ -223,3 +228,19 @@ function get_blank_discord_dict()
   return discord_dict;
 }
 
+/**************************************************************************************
+** @brief Return a Discord approp name
+** @param userEmail
+**************************************************************************************/
+function getUserNameFromEmail(userEmail)
+{
+  if (userEmail.search("something") != -1){
+    return "someone";
+  } 
+  return "**__Unknown User: " + userEmail + "__**";
+}
+
+function getDiscordUrl()
+{
+  return "discord-webhookurl";
+}
