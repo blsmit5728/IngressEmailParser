@@ -4,19 +4,10 @@ This does not violate any TOS with Niantic and accesses only your own gmail acco
 ** THIS IS PROVIDED AS-IS USE AT YOUR OWN RISK **
 
 # Setup
-* Create a Spreadsheet in Google Docs with the following Tabs: (use EXACTLY the same name)
-  * Accepted
-  * Submitted
-  * Edited
-  * Rejected
-  * Invalid
-  * Photo
-  * Nominations
-  * Missions\
-  ![Tabs](Tabs3.PNG)
+* Create a Spreadsheet in Google Docs
 * Open the Script Editor: **Tools->Script Editor**
 * Delete all existing code in the window.
-* Paste the contents of parser.js into the window.
+* Paste the contents of wayfarer.js into the window.
 * **SET YOUR DISCORD WEBHOOK URL**
 ![WEBHOOK](webhook2.png)
 * Setup the username lookup
