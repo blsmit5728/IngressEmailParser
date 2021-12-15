@@ -29,7 +29,7 @@ This does not violate any TOS with Niantic and accesses only your own gmail acco
   * "Ingress-Notifications" (without quotes)
   * "Ingress-Processed" (without quotes)
 * Create a filter:
-  * from:(ingress-support@nianticlabs.com OR nominations@portals.ingress.com) 
+  * from:(ingress-support@nianticlabs.com OR nominations@portals.ingress.com OR notices@wayfarer.nianticlabs.com)  
   * Has words: -"Damage Report"
   * click "Next"
   * apply label: Ingress-Notifications
