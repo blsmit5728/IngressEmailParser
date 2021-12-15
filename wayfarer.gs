@@ -49,16 +49,9 @@ function process_wayfarer_emails() {
 
 function process_descision_email( html_data, emailAddr )
 {
-  var discord_dict = {
-    "sub_photo" : "None",
-    "sup_photo" : "None",
-    "location" : "None",
-    "title" : "None",
-    "desc" : "None",
-    "result" : "None",
-    "who" : emailAddr,
-    "color" : 0x0
-  };
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = emailAddr;
+  
   Logger.log(html_data[236]);
   var resulting_text = html_data[240];
   var v = resulting_text.search("Congratulations");
@@ -84,6 +77,7 @@ function process_descision_email( html_data, emailAddr )
 
 function process_nomination_email( html_data, emailAddr )
 {
+  var discord_dict = get_blank_discord_dict();
   var images_text = html_data[242];
   var images_split = images_text.split('<');
   var i_split1 = images_split[2].split('=');
@@ -98,12 +92,21 @@ function process_nomination_email( html_data, emailAddr )
   location_text_0 = location_text_0.replace("<br/> ", "");
   location_text_1 = location_text_0.split("<");
   var location_text = location_text_1[0].split(',');
+  // (IIFFFFFF , -IIFFFFFF)
+  // THIS ONLY WORKS FOR MY AREA.
+  var lat_int = location_text[0].substr(0,2);
+  var lat_frac = location_text[0].substr(2);
+  var latitude = lat_int + "." + lat_frac
+  var lng_int = location_text[1].substr(0,3);
+  var lng_frac = location_text[1].substr(3);
+  var longitude = lng_int + "." + lng_frac
+
   var nomination_title = html_data[239].trim().replace("<br/>", "").trim();
   var nomination_desc = html_data[240].replace("<br/>", "").trim();
-  var discord_dict = {
+  discord_dict = {
     "sub_photo" : sub_photo,
     "sup_photo" : sup_photo,
-    "location" : "https://intel.ingress.com/?pll=" + location_text[0] + ',' + location_text[1],
+    "location" : "https://intel.ingress.com/?pll=" + latitude + ',' + longitude,
     "title" : nomination_title,
     "desc" : nomination_desc,
     "result" : "__Portal Submitted__ ",
@@ -125,6 +128,12 @@ function post_wayfarer_email_to_discord( post_dict ) {
   message = ""; //post_dict["result"] + "\n__Description:__ " + post_dict["desc"] + "\n__Created by__: " + getUserNameFromEmail(post_dict["who"]);
   var discordUrl = getDiscordUrl();
   var payload;
+
+  var url = "Not Provided";
+  if (post_dict["location"] != "None")
+  {
+    url = post_dict["location"]
+  }
   if (post_dict["sub_photo"].search("None") == -1) {
     // if we find an imgUrl instead of the word None
     payload = JSON.stringify(
@@ -146,6 +155,11 @@ function post_wayfarer_email_to_discord( post_dict ) {
                 name: "**Submitted By**",
                 value : getUserNameFromEmail(post_dict["who"]),
                 inline : true
+              },
+              {
+                name: "**Location**",
+                value: url,
+                inline: true
               }
             ],
             image: {
@@ -193,3 +207,19 @@ function post_wayfarer_email_to_discord( post_dict ) {
   var response = UrlFetchApp.fetch(discordUrl, params);
   Logger.log("Discord: Done!")
 }
+
+function get_blank_discord_dict()
+{
+  var discord_dict = {
+    "sub_photo" : "None",
+    "sup_photo" : "None",
+    "location" : "None",
+    "title" : "None",
+    "desc" : "None",
+    "result" : "None",
+    "who" : "None",
+    "color" : 0x0
+  };
+  return discord_dict;
+}
+
