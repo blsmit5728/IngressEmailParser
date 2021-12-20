@@ -3,10 +3,16 @@ function myFunction()
   process_wayfarer_emails();
 }
 
+/**************************************************************************************
+** @brief Run the parser for the emails!
+**************************************************************************************/
 function process_wayfarer_emails() {
+  var user_info = GmailApp.getInboxThreads(0,1)[0];
+  var user_info_message = user_info.getMessages()[0];
+  var user_running = user_info_message.getHeader("to");
   var label = GmailApp.getUserLabelByName("Ingress-Notifications");
   var doneLabel = GmailApp.getUserLabelByName("Ingress-Processed");
-
+  Logger.log("Running Ingress Wayfarer Parser for " + user_running);
   var threads = label.getThreads(0, 30);
   if (threads.length != 0)
   {
@@ -44,6 +50,30 @@ function process_wayfarer_emails() {
           /* nomination decision email */
           process_descision_email( msgHTMLSplit, whoTo );
         }
+        else if ( sub.search("edit suggestion received") != -1 )
+        {
+          process_edit_email( msgHTMLSplit, whoTo );
+        }
+        else if ( sub.search("edit suggestion decided") != -1 )
+        {
+          process_edit_decision_email( msgHTMLSplit, whoTo );
+        }
+        else if ( sub.search("Photo received") != -1 )
+        {
+          process_photo_email( msgHTMLSplit, whoTo );
+        }
+        else if ( sub.search("Niantic Wayspot media submission decided") != -1 )
+        {
+          process_photo_decision_email( msgHTMLSplit, whoTo );
+        }
+        else if ( sub.search("report received") != -1 )
+        {
+          process_report_email( msgHTMLSplit, whoTo );
+        }
+        else if ( sub.search("Niantic Wayspot report decided") != -1 )
+        {
+          process_report_decision_email( msgHTMLSplit, whoTo );
+        }
         /* Move the Processed Data */
         move_thread( message_thread, label, doneLabel );
 
@@ -52,6 +82,20 @@ function process_wayfarer_emails() {
   }
 }
 
+/**************************************************************************************
+** @brief Move a tread label from notifications to processed
+**************************************************************************************/
+function move_thread(t, l1, l2) {
+  Logger.log("Moving " + t);
+  t.removeLabel(l1);
+  t.addLabel(l2);
+}
+
+/**************************************************************************************
+** @brief Process a decision email.
+** @param html_data - The HTML split of the message.
+** @param emailAddr - who recvd the email
+**************************************************************************************/
 function process_descision_email( html_data, emailAddr )
 {
   var discord_dict = get_blank_discord_dict();
@@ -80,6 +124,11 @@ function process_descision_email( html_data, emailAddr )
   post_wayfarer_email_to_discord(discord_dict);
 }
 
+/**************************************************************************************
+** @brief Process a nomination email.
+** @param html_data - The HTML split of the message.
+** @param emailAddr - who recvd the email
+**************************************************************************************/
 function process_nomination_email( html_data, emailAddr )
 {
   var discord_dict = get_blank_discord_dict();
@@ -121,11 +170,153 @@ function process_nomination_email( html_data, emailAddr )
   post_wayfarer_email_to_discord(discord_dict);
 }
 
+function process_report_email( html_data, emailAddr )
+{
+  Logger.log("Process Report");
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = emailAddr;
+  var what_subbed_text = html_data[239].trim();
+  what_subbed_text = what_subbed_text.replace("<br/>", '');
+  var split = what_subbed_text.split(":");
+  discord_dict["result"] = "__Portal Report Submitted__";
+  discord_dict["title"] = split[0];
+  discord_dict["desc"] = "Reason: " + split[1].trim();
+  discord_dict["color"] = 0xeb34dc;
+  post_wayfarer_email_to_discord(discord_dict);
+}
+
+function process_report_decision_email( html_data, emailAddr )
+{
+  Logger.log("Process Report Decision");
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = emailAddr;
+  if ( html_data[240].search("report will be accepted") != -1 )
+  {
+    discord_dict["result"] = "__Portal Report Accepted__";
+    discord_dict["color"] = 0x57f717; 
+  } else 
+  {
+    discord_dict["result"] = "__Portal Report Denied__";
+    discord_dict["color"] = 0xf71717; 
+  }
+  var t = html_data[240].split("<br/>");
+  var result_text = t[0].replace(" Thank you for your Wayspot report for ", '').trim();
+  var title_text = result_text.substr(0,result_text.search(" on "));
+  var date_str = result_text.substr(result_text.search(" on ")+4,40).replace('!','');
+  discord_dict["title"] = title_text;
+  discord_dict["desc"] = "Was Submitted on: " + date_str;
+  post_wayfarer_email_to_discord(discord_dict);
+
+}
+
+function process_photo_email( html_data, emailAddr )
+{
+
+}
+
+function process_photo_decision_email( html_data, emailAddr )
+{  
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = emailAddr;
+  var images_text = html_data[238];
+  var images_split = images_text.split('<');
+  var i_split = images_split[2].split('=');
+  var sub_photo_0 = i_split[1].replace(/ alt/g, "");
+  var sub_photo_1 = sub_photo_0.replace(/"/g, '');
+  var sub_photo = sub_photo_1.replace('/>', '');
+  var sub_photo_f = sub_photo.trim();
+  // Title Text
+  var result_text = html_data[235].trim().replace(/<[^>]*>/g, "");
+  result_text = result_text.replace("Thank you for your Wayspot Photo submission for ", '').trim();
+  var title_text = result_text.substr(0,result_text.search(" on "));
+  var date_str = result_text.substr(result_text.search(" on ")+4,40).replace('!','');
+
+  var RTEXT = html_data[241];
+  var decision = "";
+  if ( RTEXT.search("Congratulations") != -1 )
+  {
+    decision = "__Portal Photo Accepted__";
+    discord_dict["color"] = 0x34ebc3;
+  } else
+  {
+    decision = "__Portal Photo Denied__";
+    discord_dict["color"] = 0xf71717;
+  }
+
+  discord_dict["title"] = title_text;
+  discord_dict["desc"] = "Was Submitted on: " + date_str;
+  discord_dict["sub_photo"] = sub_photo_f;
+  discord_dict["result"] = decision;
+  discord_dict["sup_photo"] = "https://cr0ybot.github.io/ingress-logos/ingress.png";
+  //discord_dict["color"] = 0x34ebc3;
+  post_wayfarer_email_to_discord(discord_dict);
+
+}
+
+function process_edit_email( html_data, emailAddr )
+{
+  Logger.log("Processing Edit Email");
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = emailAddr;
+  //16 title 239
+  var title_text = html_data[239]; //.substr(result_text.search(":"),50);
+  title_text = title_text.replace("<br/>", "").trim();
+  discord_dict["title"] = title_text;
+  discord_dict["result"] = "__Port Edit Submitted__";
+  var what_edited = html_data[240];
+  if ( what_edited.search("Existing title:") != -1 )
+  {
+    // Title Edit
+    what_edited = what_edited.replace("<br/>", "");
+    what_edited = what_edited.trim();
+    var e = what_edited.split(":");
+    discord_dict["desc"] = "Title Edited\nExisting Title:" + e[1];
+    var edit = html_data[241];
+    edit = edit.replace("<br/>", "");
+    edit = edit.trim();
+    var d = edit.split(":");
+    discord_dict["desc"] = discord_dict["desc"] + "\nEdit: " + d[1];
+  }
+  else if ( what_edited.search("Existing location:") != -1 )
+  {
+    // location edit
+    what_edited = what_edited.replace("<br/>", "");
+    what_edited = what_edited.trim();
+    var e = what_edited.split(":");
+    var lll = e[1].split(",");
+    lll[0] = lll[0].replace(" ", "");
+    lll[0] = lll[0].replace("(", "");
+    lll[1] = lll[1].replace(" ", "");
+    lll[1] = lll[1].replace(")", "");
+    var link_curr = "https://intel.ingress.com/?pll=" + lll[0] + ',' + lll[1];
+    discord_dict["desc"] = "Location Edited\nCur Location:" + link_curr;
+    var edit = html_data[242];
+    edit = edit.replace("<br/>", "");
+    edit = edit.trim();
+    var d = edit.split(",");
+    d[0] = d[0].replace(" ", "");
+    d[0] = d[0].replace("(", "");
+    d[1] = d[1].replace(" ", "");
+    d[1] = d[1].replace(")", "");
+    var link_neww = "https://intel.ingress.com/?pll=" + d[0] + ',' + d[1];
+    discord_dict["desc"] = discord_dict["desc"] + "\nEdit: " + link_neww;
+  }
+  discord_dict["color"] = 0xeb34dc;
+  Logger.log(discord_dict);
+  // 17 Location | title  240
+  //if ( html_data[]) 
+  // 18 Edit: 241
+  post_wayfarer_email_to_discord(discord_dict);
+}
+
+function process_edit_decision_email( html_data, emailAddr )
+{
+  
+}
+
 /**************************************************************************************
 ** @brief Post a Message to Discord
-** @param message The text to post
-** @param imgUrl If we have one, the imageURL to post
-** @param whoTo The useremail that was found in the email being processed
+** @param dict A dictionary containing info about the processed data
 **************************************************************************************/
 function post_wayfarer_email_to_discord( post_dict ) {
   
@@ -213,6 +404,10 @@ function post_wayfarer_email_to_discord( post_dict ) {
   Logger.log("Discord: Done!")
 }
 
+/**************************************************************************************
+** @brief Return a dict used to populate discord info
+** @param userEmail
+**************************************************************************************/
 function get_blank_discord_dict()
 {
   var discord_dict = {
