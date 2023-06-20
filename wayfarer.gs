@@ -76,9 +76,29 @@ function process_wayfarer_emails() {
         {
           ret_val = process_report_decision_email( msgHTMLSplit, whoTo );
         }
-        else if ( sub.search("Mission") != -1)
+        else if ( sub.search("Ingress Mission Submission Received") != -1)
         {
-          ret_val = mission_parser( msgHTMLSplit, whoTo);
+          ret_val = mission_submission_parser( sub, whoTo);
+        }
+        else if ( sub.search("Ingress Mission Approved") != -1)
+        {
+          ret_val = mission_approval_parser( sub, whoTo);
+        }
+        else if ( sub.search("Ingress Mission Rejected") != -1)
+        {
+          ret_val = mission_rejection_parser( sub, whoTo, msgHTMLSplit);
+        }
+        else if (sub.search("Wayspot appeal received") != -1)
+        {
+          ret_val = appeal_submitted( msgHTMLSplit, whoTo);
+        }
+        else if (sub.search("Wayspot appeal has been decided") != -1)
+        {
+          ret_val = appeal_decided( msgHTMLSplit, whoTo );
+        }
+        else if (sub.search("Your Wayspot submission for") != -1 )
+        {
+          ret_val = process_descision_email_wayfarer_submitted( sub, whoTo );
         }
         /* Move the Processed Data */
         if( ret_val ){
@@ -352,6 +372,9 @@ function process_edit_email( html_data, emailAddr )
   return post_wayfarer_email_to_discord(discord_dict);
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function process_edit_decision_email( html_data, emailAddr )
 {
   var ret_val = false;
@@ -370,9 +393,32 @@ function process_edit_decision_email( html_data, emailAddr )
   {
     ret_val = process_edit_desc_decision_email(html_data, emailAddr);
   }
+  /*
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = emailAddr;
+  if ( html_data[238].search("decided to accept") != -1 )
+  {
+    discord_dict["result"] = "__Portal Edit Accepted__";
+    discord_dict["color"] = 0x57f717; 
+  } else 
+  {
+    discord_dict["result"] = "__Portal Edit Denied__";
+    discord_dict["color"] = 0xf71717; 
+  }
+  var t = html_data[235].split("<br/>");
+  var result_text = t[0].replace(" Thank you for your Wayspot title suggestion for ", '').trim();
+  var title_text = result_text.substr(result_text.search(" for your Wayspot title suggestion for "));
+  var date_str = result_text.substr(result_text.search(" on ")+4,40).replace('!','').replace(".</td>", '');
+  discord_dict["title"] = title_text;
+  discord_dict["desc"] = "Was Submitted on: " + date_str;
+  post_wayfarer_email_to_discord(discord_dict);
+  */
   return ret_val;
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function process_edit_location_decision_email( html_data, emailAddr )
 {
   Logger.log("Processing Edit Location Decision");
@@ -399,6 +445,9 @@ function process_edit_location_decision_email( html_data, emailAddr )
   return ret_val;
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function process_edit_title_decision_email( html_data, emailAddr )
 {
   Logger.log("Processing Edit Title Decision");
@@ -426,6 +475,9 @@ function process_edit_title_decision_email( html_data, emailAddr )
   return ret_val;
 }
 
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
 function process_edit_desc_decision_email( html_data, emailAddr )
 {
   Logger.log("Processing Edit Desc Decision");
@@ -451,73 +503,213 @@ function process_edit_desc_decision_email( html_data, emailAddr )
   ret_val = post_wayfarer_email_to_discord(discord_dict);
   return ret_val;
 }
+
 /**************************************************************************************
 ** @brief 
 **************************************************************************************/
-function mission_parser(subjectLine, date, theThread, label1, label2, whoTo)
+function appeal_decided(html_data, emailAddr)
 {
-  return true;
-/*  
-  if (subjectLine.search("Ingress Mission Approved") != -1)
+  // Wayspot appeal has been decided
+  Logger.log("Processing Appeal Decision");
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = emailAddr;
+  var ret_val = false;
+  var loc_of_for = html_data[11].search(" for ");
+  var len_of_sub = html_data[11].len;
+  var title_text = html_data[11].substr(loc_of_for+5, len_of_sub).trim();
+  Logger.log("Title: " + title_text);
+  var result_text = html_data[238].replace(/<.*?>/g, '');
+  if( result_text.search("decided that your nomination should be added as a Wayspot") != -1 )
   {
-    var len = subjectLine.length;
-    var MissionName = subjectLine.substr(26,len);
-    var rowIndex = findMissionsEntry("NULL", MissionName);
-    if(rowIndex == -1)
-    {
-      modifyMissionsRow(rowIndex, "APPROVED", date);
-      //addToAcceptedRow("MISSION APPROVED", date, MissionName, whoTo);
-      postMessageToDiscord("Mission Approved - " + MissionName, "None", whoTo);
-      move_thread( theThread, label1, label2 );
-    }
-    else
-    {
-      move_thread( theThread, label1, label2 );
-      Logger.log("mission_parser: This entry exists! " + MissionName);
-    }
+    discord_dict["result"] = "__Portal Appeal Accepted__";
+    discord_dict["color"] = 0x57f717;
+  } else {
+    discord_dict["result"] = "__Portal Appeal Denied__";
+    discord_dict["color"] = 0xf71717;
   }
-  else if(subjectLine.search("Ingress Mission Submission Received") != -1)
-  {
-    var len = subjectLine.length;
-    var MissionName = subjectLine.substr(36,len);
-    var rowIndex = findMissionsEntry("NULL", MissionName);
-    if(rowIndex == -1)
-    {
-      addToMissionsRow("MISSION SUBMITTED", date, MissionName, whoTo);
-      postMessageToDiscord("Mission Submitted - " + MissionName, "None", whoTo);
-      move_thread( theThread, label1, label2 );
-    }
-    else
-    {
-      move_thread( theThread, label1, label2 );
-      Logger.log("mission_parser: This entry exists!" + MissionName);
-    }
-  }
-  else if (subjectLine.search("Ingress Mission Rejected") != -1)
-  {
-    var len = subjectLine.length;
-    var MissionName = subjectLine.substr(25,len);
-    var rowIndex = findMissionsEntry("NULL", MissionName);
-    if(rowIndex == -1)
-    {
-      modifyMissionsRow(rowIndex, "REJECTED", date);
-      postMessageToDiscord("Mission Rejected - " + MissionName, "None", whoTo);
-      move_thread( theThread, label1, label2 );
-    }
-    else
-    {
-      move_thread( theThread, label1, label2 );
-      Logger.log("mission_parser: This entry exists! " + MissionName);
-    }
-  }
-*/  
+  Logger.log("Processing Appeal Decision: " + result_text);
+  discord_dict["title"] = title_text;
+  discord_dict["desc"] = "Appeal";
+  ret_val = post_wayfarer_email_to_discord(discord_dict);
+  return ret_val;
 }
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function appeal_submitted(html_data, emailAddr)
+{
+  // Wayspot appeal has been decided
+  Logger.log("Processing Appeal Decision");
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = emailAddr;
+  var ret_val = false;
+  var loc_of_for = html_data[11].search(" for ");
+  var len_of_sub = html_data[11].len;
+  var title_text = html_data[11].substr(loc_of_for+5, len_of_sub).trim();
+  title_text = title_text.replace("!","");
+  title_text = title_text.replace("#","");
+  Logger.log("Title: " + title_text);
+  var images_text = html_data[242];
+  var images_split = images_text.split('<');
+  var i_split1 = images_split[2].split('=');
+  var i_split2 = images_split[5].split('=');
+  // "http://lh3.googleusercontent.com/gEEvKxFZUAScWB2aDA7nY03c6Sv41PBwBgKVzjDPExSlrZSO9OvrhcKX2CAz-3eLfYZjcAGi0_108-dKqmyfM9d5sjUB2S6ppj9OSLdDTw alt"
+  var sub_photo = i_split1[1].replace(/ alt/g, "");
+  var sup_photo = i_split2[1].replace(/ alt/g, "");
+  var nomination_desc = html_data[240].replace("<br/>", "").trim();
+  discord_dict = {
+    "sub_photo" : sub_photo,
+    "sup_photo" : sup_photo,
+    "title" : title_text,
+    "desc" : nomination_desc,
+    "location" : "None",
+    "result" : "__Portal Appeal Submitted__",
+    "who" : emailAddr,
+    "color" : 0xFF00FF
+  };
+  ret_val = post_wayfarer_email_to_discord(discord_dict);
+  return ret_val;
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function mission_submission_parser(msgHTMLSplit, whoTo)
+{
+  // Wayspot appeal has been decided
+  Logger.log("Processing Mission Submission");
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = whoTo;
+  var ret_val = false;
+  var len = msgHTMLSplit.length;
+  var MissionName = msgHTMLSplit.substr(36,len);
+  discord_dict = {   
+    "sub_photo" : "None",
+    "sup_photo" : "None",
+    "title" : MissionName,
+    "desc" : "No Desc Availible",
+    "who" : whoTo,
+    "result" : "__Mission Submitted__",
+    "color" : 0x0000FF
+  };
+  ret_val = post_wayfarer_email_to_discord(discord_dict);
+  return ret_val;
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function mission_approval_parser(msgHTMLSplit, whoTo)
+{
+  // Wayspot appeal has been decided
+  Logger.log("Processing Mission Approval");
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = whoTo;
+  var ret_val = false;
+  var len = msgHTMLSplit.length;
+  var MissionName = msgHTMLSplit.substr(26,len);
+  discord_dict = {   
+    "sub_photo" : "None",
+    "sup_photo" : "None",
+    "title" : MissionName,
+    "desc" : "No Desc Availible",
+    "who" : whoTo,
+    "result" : "__Mission Approved__",
+    "color" : 0xCCAAFF
+  };
+  ret_val = post_wayfarer_email_to_discord(discord_dict);
+  return ret_val;
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function mission_rejection_parser(sub, whoTo, msgHTMLSplit)
+{
+  // Wayspot appeal has been decided
+  Logger.log("Processing Mission Rejection");
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = whoTo;
+  var ret_val = false;
+  var len = sub.length;
+  var MissionName = sub.substr(26,len);
+  var desc = "";
+  var reason1 = msgHTMLSplit[2].replace("<li>","").replace("</li>","");
+  var reason2 = msgHTMLSplit[3].replace("<li>","").replace("</li>","");
+  var reason3 = msgHTMLSplit[4].replace("<li>","").replace("</li>","");
+  desc = reason1 + "\n" + reason2 + "\n" + reason3;
+  discord_dict = {   
+    "sub_photo" : "None",
+    "sup_photo" : "None",
+    "title" : MissionName,
+    "desc" : desc,
+    "who" : whoTo,
+    "result" : "__Mission Rejected__",
+    "color" : 0xCCAAFF
+  };
+  ret_val = post_wayfarer_email_to_discord(discord_dict);
+  return ret_val;
+}
+
+/**************************************************************************************
+** @brief 
+**************************************************************************************/
+function process_descision_email_wayfarer_submitted( msgHTMLSplit, whoTo )
+{
+  Logger.log("Processing Wayfarer Submitted Email");
+  var discord_dict = get_blank_discord_dict();
+  discord_dict["who"] = whoTo;
+  var ret_val = false;
+  var loc_of_for = msgHTMLSplit.search(" for ");
+  var loc_of_has = msgHTMLSplit.search(" has ");
+  var LENGTH = loc_of_has - loc_of_for;
+  var len_of_sub = msgHTMLSplit.len;
+  var title_text = msgHTMLSplit.substr(loc_of_for+6, LENGTH-7).trim();
+  title_text = title_text.replace("!","");
+  title_text = title_text.replace("#","");
+  Logger.log("Title: " + title_text);
+
+  var result = "";
+  var color = 0x000000;
+
+  if ( msgHTMLSplit.search("approved") != -1 ){
+    result = "__Portal Wayfarer Lightship Approved__"
+    color = 0x00FF00;
+  } else {
+    result = "__Portal Wayfarer Lightship Denied__"
+    color = 0xFF0000;
+  }
+
+  discord_dict = {
+    "sub_photo" : "None",
+    "sup_photo" : "None",
+    "title" : title_text,
+    "desc" : "No Desc Availible",
+    "location" : "None",
+    "result" : result,
+    "who" : whoTo,
+    "color" : color
+  };
+  ret_val = post_wayfarer_email_to_discord(discord_dict);
+  return ret_val;
+}
+
 /**************************************************************************************
 ** @brief Post a Message to Discord
 ** @param dict A dictionary containing info about the processed data
 **************************************************************************************/
 function post_wayfarer_email_to_discord( post_dict ) {
-  
+  var post_to_discord = false;
+  if( post_to_discord )
+  {
+    return ___post_to_discord( post_dict );
+  } else {
+    return postMessageToTelegram( post_dict );
+  }
+}
+
+function ___post_to_discord( post_dict ){
   Logger.log(post_dict);
   message = ""; //post_dict["result"] + "\n__Description:__ " + post_dict["desc"] + "\n__Created by__: " + getUserNameFromEmail(post_dict["who"]);
   var discordUrl = getDiscordUrl();
@@ -610,6 +802,86 @@ function post_wayfarer_email_to_discord( post_dict ) {
 }
 
 /**************************************************************************************
+** @brief Untested - Send a message to a telegram channel
+**************************************************************************************/
+function postMessageToTelegram( post_dict )
+{
+  var botToken = getTelegramApi();
+  var chatId = getTelegramChatId();
+  var message = "";
+  var teleUrl = ""; 
+  var payload;
+
+  if (post_dict["sub_photo"].search("None") == -1) {
+    // if we find an imgUrl instead of the word None
+    if (post_dict["location"] != "None")
+    {
+      url = post_dict["location"]
+    }
+    message += "*" + post_dict["result"] + "*" + "\n*Name:* " + post_dict["title"] + "\n*Description:* " + post_dict["desc"] + "\n*Created by:* " + getUserNameFromEmail(post_dict["who"]);
+    message += "\n[Intel Link](" + url + ")"
+    payload = JSON.stringify({chat_id: chatId, text: message, parse_mode: 'markdown'});
+    teleUrl =  "https://api.telegram.org/bot" + botToken + "/sendMessage";
+    var params = {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      method: "POST",
+      payload: payload,
+      muteHttpExceptions: false
+    };
+    Logger.log("Telegram:" + payload);
+    var response = UrlFetchApp.fetch(teleUrl, params);
+    Logger.log(response.getAllHeaders());
+    Logger.log(response.getContentText());
+    Logger.log("Telegram Done!"); 
+    payload = JSON.stringify(
+      {
+        chat_id: chatId,
+        photo: post_dict["sub_photo"],
+        caption: post_dict["title"],
+      });
+    teleUrl =  "https://api.telegram.org/bot" + botToken + "/sendPhoto";
+    var params = {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      method: "POST",
+      payload: payload,
+      muteHttpExceptions: false
+    };
+    Logger.log("Telegram:" + payload);
+    var response = UrlFetchApp.fetch(teleUrl, params);
+    Logger.log(response.getAllHeaders());
+    Logger.log(response.getContentText());
+    Logger.log("Telegram Done!"); 
+    return true;
+
+  } else {
+    message += post_dict["result"] + "\n*Name:* " + post_dict["title"] + "\n*Description:* " + post_dict["desc"] + "\n*Created by*: " + getUserNameFromEmail(post_dict["who"]);
+    payload = JSON.stringify({chat_id: chatId, text: message, parse_mode: 'markdown'});
+    teleUrl =  "https://api.telegram.org/bot" + botToken + "/sendMessage";
+    var params = {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      method: "POST",
+      payload: payload,
+      muteHttpExceptions: false
+    };
+    Logger.log("Telegram:" + payload);
+    var response = UrlFetchApp.fetch(teleUrl, params);
+    Logger.log(response.getAllHeaders());
+    Logger.log(response.getContentText());
+    Logger.log("Telegram Done!"); 
+    return true;
+  }
+    
+  
+  
+}
+
+/**************************************************************************************
 ** @brief Return a dict used to populate discord info
 ** @param userEmail
 **************************************************************************************/
@@ -661,16 +933,34 @@ function getUserNameFromEmail(userEmail)
 {
   if (userEmail.search("something") != -1){
     return "someone";
-  } 
+  }
+} 
+
+/**************************************************************************************
+** @brief Return a Discord URL for a webhook
+**************************************************************************************/
+function getDiscordUrl()
+{
+  return 'webhookurl';
+}
+
+/**************************************************************************************
+** @brief Return a Telegram API Key for a webhook
+**************************************************************************************/
+function getTelegramApi()
+{
+  return "api:keys";
 }
 
 /**************************************************************************************
 ** @brief Return a Discord URL for a webhook
-** @param userEmail
 **************************************************************************************/
-function getDiscordUrl()
+function getTelegramChatId()
 {
-  return "discord-webhookurl";
-  
+  // get your chat ID: curl https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
+  return -1;
 }
+
+
+
 
